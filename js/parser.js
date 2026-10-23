@@ -129,6 +129,43 @@ function rowToScene(hdr, c) {
 }
 
 /**
+ * Busca de forma inteligente el titulo principal del guion, descartando frases introductorias
+ * o consejos de la IA ("Mi recomendacion", "Te dejo el guion", "Aqui tienes...", etc.).
+ * @param {string[]} lines - Lineas del texto.
+ * @returns {string} Titulo detectado.
+ */
+function findScriptTitle(lines) {
+    const isAdvice = s =>
+        /^(mi recomendaci[oó]n|aqu[ií] (?:tienes|est[aá]|te dejo)|te la audito|hola|bueno|consejo|idea|an[aá]lisis|contexto|intro)/i.test(
+            s.trim()
+        );
+
+    // 1. Prioridad: Buscar un encabezado H1 o H2 con "guion", "video", "spot", "reel"
+    for (const line of lines) {
+        const m = line.match(/^\s*#{1,3}\s+(.+)$/);
+        if (m) {
+            const h = clean(m[1]);
+            if (!isAdvice(h) && /gui[oó]n|video|spot|reel|tiktok|cortometraje/i.test(h)) {
+                return h;
+            }
+        }
+    }
+
+    // 2. Segunda pasada: Cualquier H1 o H2 que no sea un consejo/introduccion
+    for (const line of lines) {
+        const m = line.match(/^\s*#{1,3}\s+(.+)$/);
+        if (m) {
+            const h = clean(m[1]);
+            if (!isAdvice(h) && !/checklist|d[oó]nde y c[oó]mo/i.test(h)) {
+                return h;
+            }
+        }
+    }
+
+    return "Mi guion";
+}
+
+/**
  * Parsea el texto completo pegado (incluso de Claude o ChatGPT sin formato previo)
  * y lo organiza en titulo, escenas de rodaje y fases de preparacion, grabacion, edicion y publicacion.
  * @param {string} text - Texto en bruto del guion.
@@ -140,7 +177,7 @@ function parseScript(text) {
     }
 
     const L = text.replace(/\r/g, "").split("\n");
-    let title = "";
+    const detectedTitle = findScriptTitle(L);
     let secs = [];
     let cur = null;
     let phase = null;
@@ -207,18 +244,14 @@ function parseScript(text) {
             if (body.length > 0) {
                 const hdr = cells(body[0]);
                 if (isSceneTableHeaders(hdr)) {
-                    // Tabla de tomas / escenas
+                    // Tabla de tomas / escenas para el teleprompter
                     body.slice(1).forEach(r => secs.push(rowToScene(hdr, cells(r))));
                     cur = null;
                 } else {
-                    // Otra tabla (ej: Historias de Instagram) -> convertir a items informativos
+                    // Tabla secundaria informativa (ej: Historias de Instagram) -> Se renderiza como tabla de referencia, NO como tareas
                     ensure();
-                    body.slice(1).forEach(r => {
-                        const c = cells(r);
-                        const label = c[0] ? `${c[0]}: ` : "";
-                        const val = c.slice(1).join(" — ");
-                        cur.lines.push({ t: "item", v: `${label}${val}` });
-                    });
+                    const tableRows = body.slice(1).map(r => cells(r));
+                    cur.lines.push({ t: "table", headers: hdr, rows: tableRows });
                 }
             }
             continue;
@@ -269,10 +302,6 @@ function parseScript(text) {
 
         if (md || subHead || (isPlainHeading(raw, t) && !(copy && /^#/.test(t)))) {
             const h = clean(md ? md[1] : t).replace(/:\s*$/, "");
-            if (!title && !secs.length) {
-                title = h;
-                continue;
-            }
             endCopy();
             open(h, phaseOf(h, phase));
             continue;
@@ -310,7 +339,7 @@ function parseScript(text) {
         if (cl) {
             const pre = t.slice(0, t.length - cl[0].length).trim();
             if (pre && pre !== "-") {
-                cur.lines.push({ t: cur.phase === "notas" ? "note" : "item", v: pre });
+                cur.lines.push({ t: "note", v: pre });
             }
             copy = {
                 t: "copy",
@@ -322,48 +351,46 @@ function parseScript(text) {
             continue;
         }
 
-        // Vineta o elemento de checklist
-        const b = raw.match(REGEX_PATTERNS.bullet);
-        const v = clean(b ? b[1] : t);
-        if (!v || v === "-") continue;
+        // Analisis de Tareas vs Informacion:
+        // Solo las lineas con casilla explicita '- [ ]' o items en secciones explicitas de checklist son tareas interactivas.
+        const hasExplicitCheckbox = /^\s*(?:[-*•]\s*)?\[\s?[xX ]?\]\s*(.*)$/.test(raw);
+        const bulletMatch = raw.match(/^\s*(?:[-*•·▪►➤✅✔☑☐□]|\d+[.)])\s+(.*)$/);
 
-        if (/:\s*$/.test(v)) {
-            cur.lines.push({ t: "lead", v: v.replace(/:\s*$/, "") });
+        if (hasExplicitCheckbox) {
+            const textVal = clean(raw.replace(/^\s*(?:[-*•]\s*)?\[\s?[xX ]?\]\s*/, ""));
+            cur.lines.push({ t: "item", v: textVal });
             continue;
         }
 
-        if (cur.kind === "scene") {
-            const q = parseQuotes(v, "");
-            if (/^(texto en pantalla|en pantalla)\s*:/i.test(v)) {
-                cur.screen = v.replace(/^[^:]+:\s*/, "");
-            } else if (q.says.length && !b) {
-                cur.says.push(...q.says);
-            } else {
+        if (bulletMatch) {
+            const v = clean(bulletMatch[1]);
+            if (!v || v === "-") continue;
+
+            const isChecklistSection =
+                /checklist|antes|prepar|material|equipo|vestuario/i.test(cur.title) ||
+                cur.phase === "antes";
+
+            if (isChecklistSection) {
                 cur.lines.push({ t: "item", v });
+            } else {
+                // En secciones informativas (Publicar, Consejos, Metricas), los puntos son notas de referencia
+                cur.lines.push({ t: "note", v: "• " + v });
             }
             continue;
         }
 
-        const indented = /^\s/.test(raw) || !!b;
-        cur.lines.push({
-            t: cur.phase === "notas" && !indented ? "note" : "item",
-            v,
-        });
+        // Texto regular o parrafo informativo
+        cur.lines.push({ t: "note", v: t });
     }
 
     endCopy();
 
     secs = secs.filter(
-        s => s.kind === "scene" || s.lines.some(l => l.t !== "copy" || l.paras.length)
+        s => s.kind === "scene" || s.lines.length > 0
     );
-    secs.forEach(s => {
-        if (s.lines) {
-            s.lines = s.lines.filter(l => l.t !== "copy" || l.paras.length);
-        }
-    });
 
     return {
-        title: title || "Mi guion",
+        title: detectedTitle || "Mi guion",
         secs,
     };
 }

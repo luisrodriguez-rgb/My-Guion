@@ -984,16 +984,24 @@ details.remind .items {
 }
 
 /* Modal de Confirmación en Página */
+.modal-backdrop[hidden] {
+    display: none !important;
+}
+
 .modal-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(4px);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     padding: 16px;
+}
+
+.modal-backdrop:not([hidden]) {
+    display: flex;
 }
 
 .modal-dialog {

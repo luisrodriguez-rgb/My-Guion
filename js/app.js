@@ -1013,13 +1013,19 @@ function showConfirmModal({ title, message, confirmText = "Confirmar", confirmCl
             confirmBtn.textContent = confirmText;
             confirmBtn.className = `btn ${confirmClass}`;
         }
-        if (modal) modal.hidden = false;
+        if (modal) {
+            modal.hidden = false;
+            modal.style.display = "flex";
+        }
     });
 }
 
 function closeConfirmModal(result) {
     const modal = $("confirm-modal");
-    if (modal) modal.hidden = true;
+    if (modal) {
+        modal.hidden = true;
+        modal.style.display = "none";
+    }
     if (modalResolve) {
         modalResolve(result);
         modalResolve = null;
@@ -1036,6 +1042,14 @@ if (modalBackdrop) {
         if (e.target === modalBackdrop) closeConfirmModal(false);
     });
 }
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+        const modal = $("confirm-modal");
+        if (modal && !modal.hidden && modal.style.display !== "none") {
+            closeConfirmModal(false);
+        }
+    }
+});
 
 // Importacion de Respaldo JSON
 const fileInput = $("file-import");

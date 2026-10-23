@@ -1,4 +1,4 @@
-# 🎬 My-Guion
+# My-Guion
 
 > **Organizador interactivo de guiones, teleprompter de rodaje y checklist de producción para creadores de contenido.**
 
@@ -9,117 +9,126 @@
 
 ---
 
-## 💡 ¿Qué es My-Guion y por qué existe?
+## Que es My-Guion y por que existe
 
-Cuando creas guiones para videos de redes sociales (TikTok, Reels, YouTube Shorts) con inteligencias artificiales como **Claude** o **ChatGPT**, la respuesta suele incluir:
+Cuando creas guiones para videos de redes sociales (TikTok, Reels, YouTube Shorts) con inteligencias artificiales como Claude o ChatGPT, la respuesta suele incluir:
 - Una tabla de tomas con tiempos, planos y textos en pantalla.
-- Diálogos entre dos o más personas (P1, P2).
-- Consejos de preparación técnica (luces, encuadre, vestuario).
-- Checklists de grabación y edición.
+- Dialogos entre dos o mas personas (P1, P2).
+- Consejos de preparacion tecnica (luces, encuadre, vestuario).
+- Checklists de grabacion y edicion.
 - Copies o captions para Instagram, TikTok y grupos de WhatsApp.
 
-**El problema:** En el momento de grabar con el celular o la cámara, un chat de IA es incómodo: la pantalla se apaga sola, no se pueden marcar las tomas terminadas, no hay zoom de lectura y no se puede seguir escena a escena.
+**El problema:** En el momento de grabar con el celular o la camara, un chat de IA presenta demasiada friccion: la pantalla se apaga sola, no se pueden marcar las tomas terminadas, no hay zoom de lectura y no se puede seguir escena a escena.
 
-**La solución:** **My-Guion** toma ese texto copiado directamente de Claude/ChatGPT y lo transforma al instante en una suite interactiva de rodaje lista para el móvil o el computador, sin necesidad de servidores, bases de datos ni conexión a internet.
+**La solucion:** **My-Guion** toma ese texto copiado directamente de Claude o ChatGPT y lo transforma al instante en una suite interactiva de rodaje lista para el movil o el computador, sin necesidad de servidores, bases de datos ni conexion a internet.
 
 ---
 
-## ✨ Características Principales
+## Caracteristicas Principales
 
-### 1. 📋 Planificación y Fases del Rodaje
-* **Parser Inteligente:** Detecta tablas con tabuladores o formato markdown (`|`), identificando duración, plano, acción, diálogos y texto en pantalla.
-* **Separación por Fases de Producción:**
-  - 🟡 **Notas:** Contexto, concepto y recomendaciones generales.
-  - 🟢 **Preparar:** Checklist previo (vestuario, batería, luces, sonido, fondo).
-  - 🎬 **Grabar:** Lista de tomas numeradas y planos ordenados.
-  - ✂️ **Editar:** Pautas de montaje, música comercial permitida y subtitulado.
-  - 🚀 **Publicar:** Textos listos para copiar directo a Instagram, TikTok y WhatsApp.
-* **Checklist con Persistencia:** Las casillas marcadas se guardan automáticamente en el navegador (`localStorage`).
-* **Compartir por WhatsApp:** Genera listas formateadas con casillas `☑` y `☐` listas para enviar a tu equipo o hermano.
+### 1. Planificacion y Fases del Rodaje
+* **Parser Inteligente de Guiones:**
+  - Discrimina entre tablas de tomas de grabacion y tablas accesorias (como calendarios de historias o listas secundarias).
+  - Limpia automaticamente prefijos de checkbox markdown (`- [ ]`) para evitar casillas duplicadas.
+  - Elimina marcas de bloque de cita (`> `) en los captions y mensajes para que la copia sea inmediata y limpia.
+  - Detecta captions inline (como los de TikTok) y genera bloques con boton de copia dedicado.
+* **Separacion por Fases de Produccion:**
+  - **Notas:** Contexto, concepto y recomendaciones generales.
+  - **Preparar:** Checklist previo (vestuario, bateria, luces, sonido, fondo).
+  - **Grabar:** Lista de tomas numeradas y planos ordenados.
+  - **Editar:** Pautas de montaje, musica comercial permitida y subtitulado.
+  - **Publicar:** Textos listos para copiar directo a Instagram, TikTok y WhatsApp, pauta y metricas.
+* **Checklist con Persistencia:** Las casillas marcadas se guardan automaticamente en el navegador (`localStorage`).
+* **Compartir por WhatsApp:** Genera listas formateadas con casillas `[x]` y `[ ]` listas para enviar a tu equipo o hermano.
 
-### 2. 🎥 Modo Grabación (Teleprompter Escena a Escena)
-* **Vista Focalizada:** Muestra únicamente la escena actual con tipografía grande y clara.
-* **Diferenciación de Personajes:** Identifica visualmente a los interlocutores (`P1`, `P2`) con colores distintivos.
-* **Overlay en Pantalla:** Representa los textos y letreros superpuestos como se verán en el video final.
-* **Screen WakeLock API:** Impide que la pantalla del celular se apague mientras estás grabando frente a la cámara.
-* **Zoom Dinámico:** Controles `A+` y `A-` para ajustar el tamaño de la letra a cualquier distancia.
+### 2. Modo Grabacion (Teleprompter Escena a Escena)
+* **Vista Focalizada:** Muestra unicamente la escena actual con tipografia grande y clara.
+* **Diferenciacion de Personajes:** Identifica visualmente a los interlocutores (`P1`, `P2`) con colores distintivos.
+* **Overlay en Pantalla:** Representa los textos y letreros superpuestos como se veran en el video final.
+* **Screen WakeLock API:** Impide que la pantalla del celular se apague mientras estas grabando frente a la camara.
+* **Zoom Dinamico:** Controles `A+` y `A-` para ajustar el tamano de la letra a cualquier distancia.
 * **Atajos de Teclado:**
-  - <kbd>Espacio</kbd> o <kbd>Enter</kbd>: Marca la escena como grabada y salta a la siguiente.
-  - <kbd>→</kbd> / <kbd>←</kbd>: Navega entre tomas.
-* **Respuesta Háptica:** Vibración sutil en smartphones al completar cada toma.
+  - `Espacio` o `Enter`: Marca la escena como grabada y salta a la siguiente.
+  - `->` / `<-`: Navega entre tomas.
+* **Respuesta Haptica:** Vibracion sutil en smartphones al completar cada toma.
 
-### 3. 📝 Pegado Universal de Guiones
+### 3. Pegado Universal de Guiones
 * Pega cualquier guion generado por IA sin necesidad de editarlo previamente.
-* El motor identifica patrones en lenguaje natural (`Escena 1`, `Toma 2`, duraciones `0-3 s`, tablas y viñetas).
+* El motor identifica patrones en lenguaje natural (`Escena 1`, `Toma 2`, duraciones `0-3 s`, tablas y vinetas).
 
-### 4. 🎨 Diseño Cinematográfico y Temas
-* Estética de **claqueta de cine** con barra de progreso interactiva en tiempo real.
+### 4. Diseno Cinematografico y Temas
+* Estetica de claqueta de cine minimalista sin distracciones ni emojis.
 * Modo Claro y Modo Oscuro accesibles con un solo clic.
-* Diseño 100% responsivo adaptado a las áreas seguras de smartphones (Notch, Dynamic Island).
+* Diseno 100% responsivo adaptado a las areas seguras de smartphones (Notch, Dynamic Island).
 
 ---
 
-## 🏗️ Arquitectura y Estructura del Proyecto
+## Hoja de Ruta (Roadmap) para Eliminar Friccion
 
-El proyecto sigue una separación estricta de responsabilidades bajo las mejores prácticas de la web moderna:
+Basado en pruebas reales en set de grabacion, este es el plan de accion para optimizar la experiencia de uso:
+
+### Fase 1: Reduccion de Friccion en la Ingesta (Completada)
+- [x] Correccion del parser para evitar falsas escenas provenientes de tablas secundarias (como tablas de historias).
+- [x] Limpieza automatica de casillas markdown `[ ]` para evitar duplicidad visual de checkboxes.
+- [x] Deteccion automatica de captions en bloques de cita `>` y lineas inline de TikTok.
+- [x] Eliminacion de emojis en la interfaz para una experiencia visual profesional y limpia.
+
+### Fase 2: Reduccion de Friccion durante la Grabacion (Proxima etapa)
+- [ ] **Filtro por Personaje:** Selector para que P1 o P2 puedan activar una vista filtrada donde solo resalten sus dialogos y acciones.
+- [ ] **Soporte para disparadores Bluetooth:** Permitir avanzar escenas usando los botones de volumen de un control remoto o auriculares Bluetooth.
+- [ ] **Gestos tactiles de deslizamiento (Swipe):** Deslizar a la izquierda o derecha en el movil para cambiar de escena comodamente con una sola mano.
+- [ ] **Temporizador de toma:** Contador integrado de segundos para verificar si la toma se mantiene dentro del rango estimado (ej: 0 a 3 segundos).
+
+### Fase 3: Reduccion de Friccion en la Colaboracion
+- [ ] **Enlace de sincronizacion express (URL Hash):** Codificar el guion completo dentro de la URL para compartirlo por WhatsApp con un clic, permitiendo que la otra persona abra el teleprompter en su telefono sin tener que pegar nada.
+- [ ] **Exportacion de tomas en formato PDF / TXT:** Generar una hoja de rodaje imprimible o lista de planos rapida para asistentes de camara.
+
+---
+
+## Arquitectura y Estructura del Proyecto
 
 ```
 My-Guion/
-├── index.html              # Estructura semántica HTML5, metadatos y accesibilidad
-├── Myguion.html            # Redirección de compatibilidad retroactiva
+├── index.html              # Estructura semantica HTML5, metadatos y accesibilidad
+├── Myguion.html            # Redireccion de compatibilidad retroactiva
 ├── css/
-│   ├── variables.css       # Tokens de diseño, paleta cinematográfica y temas (Dark/Light)
-│   ├── layout.css          # Contenedores, área segura móvil, claqueta y pestañas
+│   ├── variables.css       # Tokens de diseno, paleta cinematografica y temas (Dark/Light)
+│   ├── layout.css          # Contenedores, area segura movil, claqueta y pestanas
 │   ├── components.css      # Tarjetas, teleprompter, botones, shot list y badges
 │   └── style.css           # Hoja maestra modular
 ├── js/
-│   ├── constants.js        # Guion de ejemplo, fases de producción y expresiones regulares
-│   ├── parser.js           # Motor de análisis sintáctico de guiones y tablas
-│   ├── storage.js          # Persistencia en localStorage, exportación y backups
-│   ├── teleprompter.js     # Screen WakeLock, pantalla completa, zoom y respuesta háptica
-│   └── app.js              # Controlador principal, renderizado DOM y gestión de eventos
-├── .gitignore              # Exclusión de archivos del sistema y temporales
-└── README.md               # Documentación integral del proyecto
+│   ├── constants.js        # Guion de ejemplo, fases de produccion y expresiones regulares
+│   ├── parser.js           # Motor de analisis sintactico de guiones y tablas
+│   ├── storage.js          # Persistencia en localStorage, exportacion y backups
+│   ├── teleprompter.js     # Screen WakeLock, pantalla completa, zoom y respuesta haptica
+│   └── app.js              # Controlador principal, renderizado DOM y gestion de eventos
+├── .gitignore              # Exclusion de archivos del sistema y temporales
+└── README.md               # Documentacion integral y hoja de ruta
 ```
 
 ---
 
-## 🚀 Inicio Rápido
+## Inicio Rapido
 
-### Uso Local (Sin instalación)
+### Uso Local (Sin instalacion)
 1. Clona el repositorio:
    ```bash
    git clone https://github.com/luisrodriguez-rgb/My-Guion.git
    cd My-Guion
    ```
-2. Abre `index.html` en tu navegador favorito:
+2. Abre `index.html` en tu navegador:
    ```bash
-   # En macOS
    open index.html
-
-   # En Linux
-   xdg-open index.html
-
-   # En Windows
-   start index.html
    ```
 
 *No requiere `npm`, Node.js ni compiladores. Funciona completamente offline.*
 
 ---
 
-## 📱 Despliegue en GitHub Pages
-
-Para acceder desde tu celular o compartirlo con cualquier persona:
+## Despliegue en GitHub Pages
 
 1. Ve a tu repositorio en GitHub: `https://github.com/luisrodriguez-rgb/My-Guion`.
-2. Dirígete a **Settings** > **Pages**.
+2. Dirigete a **Settings** > **Pages**.
 3. En **Source**, selecciona `Deploy from a branch`.
 4. Elige la rama `main` y la carpeta `/ (root)`.
-5. Haz clic en **Save**. En un minuto tendrás tu enlace activo en `https://luisrodriguez-rgb.github.io/My-Guion/`.
-
----
-
-## 🤝 Créditos y Contexto
-
-Desarrollado como una herramienta ágil para creadores independientes, hermanos y equipos de marketing que necesitan convertir ideas y guiones de IA en videos reales de forma eficiente y sin fricción.
+5. Guarda los cambios. Tu aplicacion estara disponible en `https://luisrodriguez-rgb.github.io/My-Guion/`.

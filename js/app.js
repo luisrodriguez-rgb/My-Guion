@@ -822,6 +822,12 @@ document.addEventListener("click", e => {
         showToast("Respaldo descargado");
         return;
     }
+    if (t.id === "btn-copy-backup") {
+        const jsonStr = JSON.stringify(appData, null, 2);
+        copyToClipboard(jsonStr);
+        showToast("Respaldo copiado al portapapeles");
+        return;
+    }
     if (t.id === "btn-import-trigger") {
         $("file-import").click();
         return;

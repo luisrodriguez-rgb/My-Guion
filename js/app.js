@@ -215,7 +215,7 @@ function renderDashboard() {
             <div class="p-bar"><i style="width: ${progressPc}%"></i></div>
           </div>
 
-          <div class="dash-card-actions" onclick="event.stopPropagation()">
+          <div class="dash-card-actions">
             <button class="btn primary small" data-dash-action="grabar" data-script-id="${s.id}">Grabar</button>
             <button class="btn small" data-dash-action="plan" data-script-id="${s.id}">Plan</button>
             <button class="btn ghost small" data-dash-action="duplicate" data-script-id="${s.id}" title="Duplicar guion">Duplicar</button>

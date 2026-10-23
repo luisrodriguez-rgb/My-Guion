@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>My-Guion · Organizador de Guiones, Rodaje y Checklist</title>
-    <meta name="description" content="Convierte guiones generados por IA (Claude, ChatGPT) en listas de planos interactivos, checklists de grabación, teleprompter escena a escena y copies listos para publicar.">
+    <meta name="description" content="Organizador interactivo de guiones, biblioteca de proyectos, teleprompter de rodaje y checklists de produccion para creadores.">
     <meta name="theme-color" content="#232a28">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Tipografías de Google Fonts -->
+    <!-- Tipografias de Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
@@ -19,16 +19,19 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Encabezado de Claqueta Cinematográfica -->
+    <!-- Encabezado de Claqueta Cinematografica -->
     <header class="board gut" role="banner">
         <div class="stripes gut" aria-hidden="true"></div>
         <div class="board-in wrap">
             <div class="ttl">
-                <div class="brand">My-Guion · Producción</div>
-                <h1 id="vtitle">Guion</h1>
+                <div class="ttl-meta">
+                    <button class="board-nav-btn" id="btn-to-dashboard" title="Ir a la biblioteca de guiones">Biblioteca</button>
+                    <div class="brand">My-Guion · Produccion</div>
+                </div>
+                <h1 id="vtitle" contenteditable="true" spellcheck="false" title="Haz clic para editar el nombre del video">Guion</h1>
             </div>
-            <div class="row" style="gap: 8px;">
-                <button class="btn ghost small" id="theme-toggle" title="Cambiar tema (Claro / Oscuro)" aria-label="Cambiar tema">Tema</button>
+            <div class="board-actions">
+                <button class="board-btn" id="theme-toggle" title="Cambiar tema">Tema</button>
                 <div class="count" aria-live="polite">
                     <b id="cnt">0%</b>listo
                 </div>
@@ -38,6 +41,7 @@
             <i id="barfill"></i>
         </div>
         <nav class="tabs wrap" role="tablist" aria-label="Secciones del rodaje">
+            <button id="t-dash" role="tab" data-v="dashboard" aria-selected="false">Biblioteca</button>
             <button id="t-plan" role="tab" data-v="plan" aria-selected="true">Plan</button>
             <button id="t-grabar" role="tab" data-v="grabar" aria-selected="false">Grabar</button>
             <button id="t-guion" role="tab" data-v="guion" aria-selected="false">Pegar guion</button>
@@ -46,20 +50,40 @@
 
     <!-- Contenedor Principal de Vistas -->
     <main class="wrap">
-        <!-- Vista 1: Planificación y Fases -->
+        <!-- Vista 0: Dashboard / Biblioteca de Guiones -->
+        <section id="v-dashboard" class="view" role="tabpanel" aria-labelledby="t-dash" hidden>
+            <div class="dash-head">
+                <div>
+                    <h2>Mis Guiones</h2>
+                    <p>Biblioteca de proyectos y sesiones de rodaje.</p>
+                </div>
+                <div class="dash-actions-top">
+                    <button class="btn primary" id="btn-create-script">+ Nuevo guion</button>
+                    <button class="btn small" id="btn-export-backup" title="Descargar respaldo de todos los guiones">Exportar respaldo</button>
+                    <button class="btn small ghost" id="btn-import-trigger" title="Cargar respaldo JSON">Importar</button>
+                    <input type="file" id="file-import" accept=".json" style="display: none;">
+                </div>
+            </div>
+            <div id="dash-grid" class="dash-grid"></div>
+        </section>
+
+        <!-- Vista 1: Planificacion y Fases -->
         <section id="v-plan" class="view" role="tabpanel" aria-labelledby="t-plan">
-            <div class="phases" id="phases" role="tablist" aria-label="Fases de producción"></div>
+            <div class="phases" id="phases" role="tablist" aria-label="Fases de produccion"></div>
             <div id="phase"></div>
         </section>
 
-        <!-- Vista 2: Teleprompter y Grabación Escena por Escena -->
+        <!-- Vista 2: Teleprompter y Grabacion Escena por Escena -->
         <section id="v-grabar" class="view" role="tabpanel" aria-labelledby="t-grabar" hidden>
             <div class="rec-top">
-                <span class="lbl" id="recpos"></span>
-                <div class="size" role="toolbar" aria-label="Controles de teleprompter">
-                    <button id="zm" aria-label="Letra más pequeña" title="Reducir tamaño de letra">A−</button>
-                    <button id="zp" aria-label="Letra más grande" title="Aumentar tamaño de letra">A+</button>
-                    <button id="btn-fullscreen" aria-label="Pantalla completa" title="Alternar pantalla completa">Pantalla completa</button>
+                <span class="scene-badge" id="recpos">Toma 1 de 7</span>
+                <div class="tele-toolbar" role="toolbar" aria-label="Controles de teleprompter">
+                    <div class="zoom-pill">
+                        <button id="zm" aria-label="Reducir letra" title="Reducir tamano de letra">A−</button>
+                        <span id="zoom-val" class="zoom-val">100%</span>
+                        <button id="zp" aria-label="Aumentar letra" title="Aumentar tamano de letra">A+</button>
+                    </div>
+                    <button id="btn-fullscreen" class="btn small tele-action-btn" title="Alternar pantalla completa">Pantalla completa</button>
                 </div>
             </div>
             <div id="rec"></div>
@@ -69,28 +93,31 @@
         <section id="v-guion" class="view" role="tabpanel" aria-labelledby="t-guion" hidden>
             <div class="lbl">Nuevo guion para estructurar</div>
             <p class="hint">
-                Pega el guion completo tal como te lo dio Claude o ChatGPT (con tablas, viñetas y textos).
-                My-Guion identifica automáticamente la tabla de tomas, separa los diálogos por personajes (P1, P2) y distribuye las tareas en
+                Pega el guion completo tal como te lo dio Claude o ChatGPT (con tablas, vinetas y textos).
+                My-Guion identifica la tabla de tomas, separa los dialogos por personajes (P1, P2) y distribuye las tareas en
                 <b>Preparar</b>, <b>Grabar</b>, <b>Editar</b> y <b>Publicar</b>.
             </p>
-            <textarea id="src" spellcheck="false" placeholder="Pega aquí tu guion completo…" aria-label="Contenido del guion"></textarea>
+            <div style="margin-bottom: 12px;">
+                <input type="text" id="script-title-input" placeholder="Titulo del guion (opcional, se auto-detecta si esta vacio)"
+                    style="width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font-family: var(--f-body); font-weight: 600; font-size: 0.95rem;">
+            </div>
+            <textarea id="src" spellcheck="false" placeholder="Pega aqui tu guion completo..." aria-label="Contenido del guion"></textarea>
             <div class="row" style="margin-top: 14px">
-                <button class="btn primary" id="go">Organizar en escenas</button>
+                <button class="btn primary" id="go">Organizar y guardar en biblioteca</button>
                 <button class="btn ghost" id="clear">Borrar texto</button>
             </div>
         </section>
 
-        <!-- Pie de Página -->
+        <!-- Pie de Pagina Limpio -->
         <footer class="app-footer">
-            <p><strong>My-Guion</strong> · Diseñado para creadores de contenido, rodajes en solitario y equipos ágiles.</p>
-            <p style="margin-top: 4px; opacity: 0.8;">Atajos en modo Grabar: <kbd>Espacio</kbd> = marcar y siguiente · <kbd>←</kbd> / <kbd>→</kbd> = navegar</p>
+            <p>Atajos en modo Grabar: <kbd>Espacio</kbd> = marcar y siguiente · <kbd>&larr;</kbd> / <kbd>&rarr;</kbd> = navegar tomas</p>
         </footer>
     </main>
 
-    <!-- Notificación Flotante (Toast) -->
+    <!-- Notificacion Flotante (Toast) -->
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-    <!-- Scripts de la Aplicación en Orden de Dependencia -->
+    <!-- Scripts de la Aplicacion en Orden de Dependencia -->
     <script src="js/constants.js"></script>
     <script src="js/parser.js"></script>
     <script src="js/storage.js"></script>

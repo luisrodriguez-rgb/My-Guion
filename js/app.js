@@ -1,10 +1,11 @@
 /* ==========================================================================
-   My-Guion - Controlador Principal de la Aplicación
+   My-Guion - Controlador Principal de la Aplicacion y Dashboard
    ========================================================================== */
 
-// Inicialización de estado y documento parseado
-loadState();
-let doc = parseScript(appState.text);
+// Inicializacion de almacenamiento y estado
+loadAppData();
+let activeScript = getActiveScript();
+let doc = parseScript(activeScript.text);
 
 // Utilidades DOM
 const $ = id => document.getElementById(id);
@@ -14,35 +15,32 @@ const esc = s =>
         c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
     );
 
-// Consultas estructuradas sobre el guion
+// Consultas estructuradas sobre el guion activo
 const getScenes = () =>
     doc.secs.map((s, i) => ({ s, i })).filter(x => x.s.kind === "scene");
 const getSecsOf = ph =>
     doc.secs
         .map((s, i) => ({ s, i }))
         .filter(x => x.s.kind === "sec" && x.s.phase === ph);
-const isSceneDone = i => !!appState.done["s" + i];
+const isSceneDone = i => !!activeScript.done["s" + i];
 
 /**
- * Obtiene todas las claves únicas de checklist para una fase dada.
+ * Obtiene todas las claves unicas de checklist para una fase dada.
+ * En la fase 'grabar', solo cuenta las escenas de rodaje.
  * @param {string} ph - Identificador de fase.
  * @returns {string[]}
  */
 function getItemKeys(ph) {
     const keys = [];
+    if (ph === "grabar") {
+        getScenes().forEach(({ i }) => keys.push("s" + i));
+        return keys;
+    }
     getSecsOf(ph).forEach(({ s, i }) =>
         s.lines.forEach((l, k) => {
             if (l.t === "item") keys.push(i + "-" + k);
         })
     );
-    getScenes().forEach(({ s, i }) => {
-        if (ph === "grabar") {
-            keys.push("s" + i);
-            (s.lines || []).forEach((l, k) => {
-                if (l.t === "item") keys.push(i + "-" + k);
-            });
-        }
-    });
     return keys;
 }
 
@@ -52,30 +50,90 @@ function getItemKeys(ph) {
 function getShownPhases() {
     return PHASES.filter(p =>
         p.id === "grabar"
-            ? getScenes().length || getSecsOf("grabar").length
-            : getSecsOf(p.id).length
+            ? getScenes().length > 0 || getSecsOf("grabar").length > 0
+            : getSecsOf(p.id).length > 0
     );
 }
 
 /**
- * Calcula el progreso de tareas completadas de una fase.
+ * Calcula el progreso de tareas de una fase.
  * @param {string} ph - Identificador de fase.
- * @returns {{ d: number, n: number }}
+ * @returns {{ d: number, n: number, isScenes: boolean }}
  */
 function getProgress(ph) {
     const keys = getItemKeys(ph);
     return {
-        d: keys.filter(x => appState.done[x]).length,
+        d: keys.filter(x => activeScript.done[x]).length,
         n: keys.length,
+        isScenes: ph === "grabar",
     };
 }
 
 /**
- * Actualiza el encabezado tipo claqueta con el título y la barra de progreso global.
+ * Calcula el estado automatico de un guion para el Dashboard.
+ * @param {object} s - Objeto de guion.
+ * @returns {{ label: string, cls: string }}
+ */
+function computeScriptStatus(s) {
+    const parsed = parseScript(s.text);
+    const scenes = parsed.secs.filter(x => x.kind === "scene");
+    if (!scenes.length) {
+        return { label: "Borrador", cls: "status-borrador" };
+    }
+
+    const recordedCount = scenes.filter((_, idx) => !!s.done["s" + idx]).length;
+    if (recordedCount === 0) {
+        return { label: "Por grabar", cls: "status-por-grabar" };
+    }
+    if (recordedCount < scenes.length) {
+        return { label: `Grabando (${recordedCount}/${scenes.length})`, cls: "status-por-grabar" };
+    }
+
+    // Todas las escenas grabadas
+    const editSecs = parsed.secs.filter(x => x.kind === "sec" && x.phase === "editar");
+    let totalEditItems = 0;
+    let doneEditItems = 0;
+    editSecs.forEach((sec, i) => {
+        sec.lines.forEach((l, k) => {
+            if (l.t === "item") {
+                totalEditItems++;
+                if (s.done[`${i}-${k}`]) doneEditItems++;
+            }
+        });
+    });
+
+    if (totalEditItems > 0 && doneEditItems < totalEditItems) {
+        return { label: "Grabado", cls: "status-grabado" };
+    }
+
+    const pubSecs = parsed.secs.filter(x => x.kind === "sec" && x.phase === "publicar");
+    let totalPubItems = 0;
+    let donePubItems = 0;
+    pubSecs.forEach((sec, i) => {
+        sec.lines.forEach((l, k) => {
+            if (l.t === "item") {
+                totalPubItems++;
+                if (s.done[`${i}-${k}`]) donePubItems++;
+            }
+        });
+    });
+
+    if (totalPubItems > 0 && donePubItems < totalPubItems) {
+        return { label: "Editado", cls: "status-editado" };
+    }
+
+    return { label: "Publicado", cls: "status-publicado" };
+}
+
+/**
+ * Actualiza el encabezado tipo claqueta con el titulo y la barra de progreso global.
  */
 function updateHeader() {
+    activeScript = getActiveScript();
     const titleEl = $("vtitle");
-    if (titleEl) titleEl.textContent = doc.title;
+    if (titleEl && document.activeElement !== titleEl) {
+        titleEl.textContent = activeScript.title || doc.title;
+    }
 
     let d = 0,
         n = 0;
@@ -91,12 +149,87 @@ function updateHeader() {
 
     if (cntEl) cntEl.textContent = `${pc}%`;
     if (barFillEl) barFillEl.style.width = `${pc}%`;
+
+    // Boton de Tema en cabecera
+    const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+    const themeBtn = $("theme-toggle");
+    if (themeBtn) {
+        themeBtn.textContent = currentTheme === "dark" ? "Tema: Claro" : "Tema: Oscuro";
+    }
+
+    // Boton de retorno a biblioteca
+    const backDashBtn = $("btn-to-dashboard");
+    if (backDashBtn) {
+        backDashBtn.style.display = appData.view === "dashboard" ? "none" : "inline-block";
+    }
 }
 
 /**
- * Genera el marcado HTML para listas de ítems, notas y bloques de copy.
- * @param {object} s - Sección del guion.
- * @param {number} i - Índice de la sección.
+ * Renderiza la vista de Dashboard (Biblioteca de Guiones).
+ */
+function renderDashboard() {
+    const grid = $("dash-grid");
+    if (!grid) return;
+
+    if (!appData.scripts.length) {
+        grid.innerHTML = `
+      <div class="dash-empty" style="grid-column: 1 / -1;">
+        <h3>No tienes ningun guion guardado todavia</h3>
+        <p class="hint" style="margin-inline:auto">Pega el guion que te dio Claude o ChatGPT para comenzar a organizar tu rodaje.</p>
+        <button class="btn primary" id="btn-create-script-empty" style="margin-top:12px">+ Crear mi primer guion</button>
+      </div>`;
+        return;
+    }
+
+    grid.innerHTML = appData.scripts
+        .map(s => {
+            const parsed = parseScript(s.text);
+            const scenes = parsed.secs.filter(x => x.kind === "scene");
+            const status = computeScriptStatus(s);
+            const recordedCount = scenes.filter((_, idx) => !!s.done["s" + idx]).length;
+            const progressPc = scenes.length ? Math.round((recordedCount / scenes.length) * 100) : 0;
+            const isActive = s.id === appData.activeScriptId;
+
+            // Formato de fecha relativo o corto
+            const dateStr = new Date(s.updatedAt || s.createdAt).toLocaleDateString("es-ES", {
+                day: "numeric",
+                month: "short",
+            });
+
+            return `
+        <article class="dash-card ${isActive ? "active" : ""}" data-open-script="${s.id}">
+          <div class="dash-card-top">
+            <div class="dash-badge-row">
+              <span class="dash-status ${status.cls}">${status.label}</span>
+              <span class="dash-card-meta">${dateStr}</span>
+            </div>
+            <h3 class="dash-card-title">${esc(s.title || parsed.title)}</h3>
+            <div class="dash-card-meta">
+              <span>${scenes.length} tomas</span>
+              <span>·</span>
+              <span>${progressPc}% grabado</span>
+            </div>
+          </div>
+
+          <div class="dash-card-progress">
+            <div class="p-bar"><i style="width: ${progressPc}%"></i></div>
+          </div>
+
+          <div class="dash-card-actions" onclick="event.stopPropagation()">
+            <button class="btn primary small" data-dash-action="grabar" data-script-id="${s.id}">Grabar</button>
+            <button class="btn small" data-dash-action="plan" data-script-id="${s.id}">Plan</button>
+            <button class="btn ghost small" data-dash-action="duplicate" data-script-id="${s.id}" title="Duplicar guion">Duplicar</button>
+            <button class="btn ghost small warn" data-dash-action="delete" data-script-id="${s.id}" title="Eliminar guion">Eliminar</button>
+          </div>
+        </article>`;
+        })
+        .join("");
+}
+
+/**
+ * Genera el marcado HTML para listas de items, notas, tablas y bloques de copy.
+ * @param {object} s - Seccion del guion.
+ * @param {number} i - Indice de la seccion.
  * @returns {string} HTML generado.
  */
 function renderItemsHTML(s, i) {
@@ -117,7 +250,7 @@ function renderItemsHTML(s, i) {
                 openItemsList = true;
             }
             const key = `${i}-${k}`;
-            const isChecked = !!appState.done[key];
+            const isChecked = !!activeScript.done[key];
             out += `
         <label class="item ${isChecked ? "on" : ""}">
           <input type="checkbox" id="c${key}" data-k="${key}" ${isChecked ? "checked" : ""}>
@@ -132,6 +265,23 @@ function renderItemsHTML(s, i) {
             out += `<div class="lead">${esc(l.v)}</div>`;
         } else if (l.t === "note") {
             out += `<p class="note">${esc(l.v)}</p>`;
+        } else if (l.t === "table") {
+            out += `
+        <div class="info-table-wrap">
+          <table class="info-table">
+            <thead>
+              <tr>${l.headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+              ${l.rows
+                  .map(
+                      r => `
+                <tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`
+                  )
+                  .join("")}
+            </tbody>
+          </table>
+        </div>`;
         } else if (l.t === "copy") {
             out += `
         <div class="copy">
@@ -153,8 +303,8 @@ function renderItemsHTML(s, i) {
  */
 function renderPlan() {
     const shown = getShownPhases();
-    if (!shown.find(p => p.id === appState.phase)) {
-        appState.phase = (
+    if (!shown.find(p => p.id === activeScript.phase)) {
+        activeScript.phase = (
             shown.find(p => p.id === "grabar") ||
             shown[0] || { id: "notas" }
         ).id;
@@ -166,16 +316,25 @@ function renderPlan() {
         .map(p => {
             const r = getProgress(p.id);
             const isFull = r.n > 0 && r.d === r.n;
+            const countLabel =
+                p.id === "notas"
+                    ? "INFO"
+                    : p.id === "grabar"
+                    ? `${r.d}/${r.n} tomas`
+                    : isFull
+                    ? "LISTO"
+                    : `${r.d}/${r.n}`;
+
             return `
-      <button class="ph ${isFull ? "full" : ""}" role="tab" data-ph="${p.id}" aria-selected="${appState.phase === p.id}">
-        <span class="k">${p.id === "notas" ? "INFO" : isFull ? "LISTO" : `${r.d}/${r.n}`}</span>
+      <button class="ph ${isFull ? "full" : ""}" role="tab" data-ph="${p.id}" aria-selected="${activeScript.phase === p.id}">
+        <span class="k">${countLabel}</span>
         <span class="n">${p.name}</span>
         <span class="p"><i style="width: ${r.n ? (r.d / r.n) * 100 : 0}%"></i></span>
       </button>`;
         })
         .join("");
 
-    const currentPhaseObj = PHASES.find(x => x.id === appState.phase);
+    const currentPhaseObj = PHASES.find(x => x.id === activeScript.phase);
     let html = `
     <div class="phase-bar">
       <h2>${currentPhaseObj.name}</h2>
@@ -190,7 +349,7 @@ function renderPlan() {
 
     html += `</div></div><div class="list">`;
 
-    // Si estamos en fase Grabar y hay escenas estructuradas, mostramos el shot list
+    // Lista de planos numerados en fase Grabar
     if (currentPhaseObj.id === "grabar" && getScenes().length) {
         html += `
       <div class="shots">
@@ -211,7 +370,7 @@ function renderPlan() {
       </div>`;
     }
 
-    // Secciones y tarjetas de la fase activa
+    // Secciones y tarjetas informativas/tareas de la fase
     getSecsOf(currentPhaseObj.id).forEach(({ s, i }) => {
         html += `
       <div class="card ${currentPhaseObj.id === "notas" ? "notes" : ""}">
@@ -225,7 +384,7 @@ function renderPlan() {
 }
 
 /**
- * Devuelve la clase CSS del personaje de diálogo (P1, P2).
+ * Devuelve la clase CSS del personaje de dialogo (P1, P2).
  */
 function getSpeakerClass(who) {
     if (/^p1$/i.test(who)) return "p1";
@@ -234,7 +393,7 @@ function getSpeakerClass(who) {
 }
 
 /**
- * Renderiza los botones de navegación rápida por puntos (Dots).
+ * Renderiza los botones de navegacion rapida por puntos (Dots).
  */
 function renderDots(sc) {
     return `
@@ -242,7 +401,7 @@ function renderDots(sc) {
       ${sc
           .map((x, k) => {
               const done = isSceneDone(x.i);
-              const current = k === appState.cur;
+              const current = k === activeScript.cur;
               return `<button data-j="${k}" class="${done ? "d" : ""} ${current ? "c" : ""}" aria-label="Ir a la escena ${k + 1}">${k + 1}</button>`;
           })
           .join("")}
@@ -250,24 +409,34 @@ function renderDots(sc) {
 }
 
 /**
- * Renderiza la vista de Grabación (Modo Teleprompter escena a escena).
+ * Renderiza la vista de Grabacion (Modo Teleprompter escena a escena).
  */
 function renderRec() {
     const sc = getScenes();
-    document.documentElement.style.setProperty("--z", appState.z);
+    document.documentElement.style.setProperty("--z", activeScript.z);
+
+    const zoomValEl = $("zoom-val");
+    if (zoomValEl) {
+        zoomValEl.textContent = `${Math.round(activeScript.z * 100)}%`;
+    }
 
     if (!sc.length) {
         $("recpos").textContent = "";
         $("rec").innerHTML = `
-      <p class="empty">Este guion no trae escenas detectables.<br>Pega uno con tabla o con formato “Escena 1, Escena 2…” en la pestaña <b>Pegar guion</b>.</p>`;
+      <p class="empty">Este guion no trae escenas detectables.<br>Pega uno con tabla o con formato “Escena 1, Escena 2…” en la pestana <b>Pegar guion</b>.</p>`;
         return;
     }
 
     const remindSecs = getSecsOf("grabar");
+    const remindCount = remindSecs.reduce(
+        (acc, x) => acc + x.s.lines.filter(l => l.t === "item" || l.t === "note").length,
+        0
+    );
+
     const remindHTML = remindSecs.length
         ? `
-      <details class="remind" ${appState.open ? "open" : ""} id="rmd">
-        <summary>Recordatorios para grabar (${remindSecs.reduce((acc, x) => acc + x.s.lines.filter(l => l.t === "item").length, 0)} puntos)</summary>
+      <details class="remind" ${activeScript.open ? "open" : ""} id="rmd">
+        <summary>Recordatorios para grabar (${remindCount} notas y tips)</summary>
         ${remindSecs
             .map(
                 ({ s, i }) =>
@@ -281,14 +450,14 @@ function renderRec() {
         : "";
 
     // Pantalla de cierre de rodaje
-    if (appState.cur >= sc.length) {
+    if (activeScript.cur >= sc.length) {
         $("recpos").textContent = "Rodaje Completo";
         $("rec").innerHTML = `
       <div class="scene wrapup">
-        <b>¡Corte!</b>
-        <p class="hint" style="margin-inline:auto; font-size:1.05rem">Todas las escenas han sido grabadas. Puedes continuar con la fase de Edición.</p>
+        <b>Corte</b>
+        <p class="hint" style="margin-inline:auto; font-size:1.05rem">Todas las escenas han sido grabadas. Puedes continuar con la fase de Edicion.</p>
         <div class="row" style="justify-content:center; margin-top:16px">
-          <button class="btn" id="back">Volver a la última escena</button>
+          <button class="btn" id="back">Volver a la ultima escena</button>
           <button class="btn primary" data-ph-go="editar">Ir a Editar</button>
         </div>
       </div>
@@ -296,15 +465,15 @@ function renderRec() {
         return;
     }
 
-    const { s, i } = sc[appState.cur];
+    const { s, i } = sc[activeScript.cur];
     const isDone = isSceneDone(i);
 
-    $("recpos").textContent = `Escena ${appState.cur + 1} de ${sc.length}`;
+    $("recpos").textContent = `Toma ${activeScript.cur + 1} de ${sc.length}`;
     $("rec").innerHTML = `
     ${remindHTML}
     <article class="scene ${isDone ? "d" : ""}">
       <div class="scene-h">
-        <div class="big">${appState.cur + 1}</div>
+        <div class="big">${activeScript.cur + 1}</div>
         <div class="meta">
           ${s.time ? `<span class="pill">${esc(s.time)}</span>` : ""}
           <h2>${esc(s.title)}</h2>
@@ -315,7 +484,7 @@ function renderRec() {
           s.action
               ? `
         <div class="field">
-          <div class="lbl">Qué pasa (Acción)</div>
+          <div class="lbl">Que pasa (Accion)</div>
           <div class="action">${esc(s.action)}</div>
         </div>`
               : ""
@@ -325,7 +494,7 @@ function renderRec() {
           s.says.length
               ? `
         <div class="field">
-          <div class="lbl">Qué se dice (Diálogo)</div>
+          <div class="lbl">Que se dice (Dialogo)</div>
           ${s.says
               .map(
                   x => `
@@ -362,9 +531,9 @@ function renderRec() {
     </article>
 
     <div class="nav">
-      <button class="btn" id="prev" ${appState.cur === 0 ? "disabled" : ""}>← Anterior</button>
+      <button class="btn" id="prev" ${activeScript.cur === 0 ? "disabled" : ""}>&larr; Anterior</button>
       <button class="btn primary ${isDone ? "isdone" : ""}" id="next">
-        ${isDone ? "Siguiente →" : "Lista, siguiente"}
+        ${isDone ? "Siguiente &rarr;" : "Lista, siguiente"}
       </button>
     </div>
     ${renderDots(sc)}`;
@@ -374,23 +543,27 @@ function renderRec() {
  * Renderizador central de vistas.
  */
 function render() {
+    activeScript = getActiveScript();
+    doc = parseScript(activeScript.text);
+
     updateHeader();
 
-    ["plan", "grabar", "guion"].forEach(v => {
+    ["dashboard", "plan", "grabar", "guion"].forEach(v => {
         const viewEl = $("v-" + v);
-        const tabEl = $("t-" + v);
-        if (viewEl) viewEl.hidden = appState.view !== v;
-        if (tabEl) tabEl.setAttribute("aria-selected", appState.view === v);
+        const tabEl = $("t-" + (v === "dashboard" ? "dash" : v));
+        if (viewEl) viewEl.hidden = appData.view !== v;
+        if (tabEl) tabEl.setAttribute("aria-selected", appData.view === v);
     });
 
-    if (appState.view === "plan") renderPlan();
-    if (appState.view === "grabar") renderRec();
+    if (appData.view === "dashboard") renderDashboard();
+    if (appData.view === "plan") renderPlan();
+    if (appData.view === "grabar") renderRec();
 
-    manageWakeLock(appState.view === "grabar");
+    manageWakeLock(appData.view === "grabar");
 }
 
 /**
- * Notificación temporal tipo Toast.
+ * Notificacion temporal tipo Toast.
  * @param {string} msg - Mensaje a mostrar.
  */
 function showToast(msg) {
@@ -407,7 +580,7 @@ function showToast(msg) {
 /**
  * Copia texto al portapapeles con fallback seguro.
  * @param {string} txt - Texto a copiar.
- * @param {HTMLElement} [el] - Elemento DOM de respaldo para selección.
+ * @param {HTMLElement} [el] - Elemento DOM de respaldo.
  */
 async function copyToClipboard(txt, el) {
     try {
@@ -421,23 +594,23 @@ async function copyToClipboard(txt, el) {
             sel.removeAllRanges();
             sel.addRange(r);
         }
-        showToast("Texto seleccionado: cópialo manualmente");
+        showToast("Texto seleccionado: copialo manualmente");
     }
 }
 
 /**
- * Genera el texto del checklist formateado con casillas ☑ / ☐ para compartir por WhatsApp.
+ * Genera el texto del checklist formateado para compartir por WhatsApp.
  * @param {string} ph - Fase de rodaje.
  * @returns {string}
  */
 function generateChecklistText(ph) {
     const p = PHASES.find(x => x.id === ph);
-    const out = [`*${doc.title} — ${p.name}*`];
+    const out = [`*${activeScript.title || doc.title} — ${p.name}*`];
 
     if (ph === "grabar") {
         getScenes().forEach(({ s, i }, k) => {
             const mark = isSceneDone(i) ? "☑" : "☐";
-            out.push(`${mark} Escena ${k + 1}${s.time ? ` (${s.time})` : ""}: ${s.title}`);
+            out.push(`${mark} Toma ${k + 1}${s.time ? ` (${s.time})` : ""}: ${s.title}`);
         });
     }
 
@@ -445,7 +618,7 @@ function generateChecklistText(ph) {
         if (s.title) out.push("", `*${s.title.toUpperCase()}*`);
         s.lines.forEach((l, k) => {
             if (l.t === "item") {
-                const mark = appState.done[`${i}-${k}`] ? "☑" : "☐";
+                const mark = activeScript.done[`${i}-${k}`] ? "☑" : "☐";
                 out.push(`${mark} ${l.v}`);
             }
         });
@@ -458,12 +631,31 @@ function generateChecklistText(ph) {
 // Controladores de Eventos Globales
 // -----------------------------------------------------------------------------
 
-// Modificación de Casillas de Verificación
+// Edicion del Titulo en Cabecera
+const titleEl = $("vtitle");
+if (titleEl) {
+    titleEl.addEventListener("blur", () => {
+        const val = titleEl.textContent.trim();
+        if (val && val !== activeScript.title) {
+            activeScript.title = val;
+            updateActiveScript({ title: val });
+            showToast("Titulo actualizado");
+        }
+    });
+    titleEl.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            titleEl.blur();
+        }
+    });
+}
+
+// Modificacion de Casillas de Verificacion
 document.addEventListener("change", e => {
     const k = e.target.dataset && e.target.dataset.k;
     if (!k) return;
-    appState.done[k] = e.target.checked;
-    saveState();
+    activeScript.done[k] = e.target.checked;
+    updateActiveScript({ done: activeScript.done });
     render();
 });
 
@@ -472,59 +664,137 @@ document.addEventListener(
     "toggle",
     e => {
         if (e.target.id === "rmd") {
-            appState.open = e.target.open;
-            saveState();
+            activeScript.open = e.target.open;
+            updateActiveScript({ open: e.target.open });
         }
     },
     true
 );
 
-// Delegación de Clics en la Aplicación
+// Delegacion de Clics en la Aplicacion
 document.addEventListener("click", e => {
-    const t = e.target.closest("button");
-    if (!t) return;
-
-    // Cambio de vista principal (Plan / Grabar / Pegar guion)
-    if (t.dataset.v) {
-        appState.view = t.dataset.v;
-        if (appState.view === "guion") {
-            $("src").value = appState.text;
-        }
-        saveState();
+    // Abrir tarjeta desde el Dashboard
+    const cardEl = e.target.closest("[data-open-script]");
+    if (cardEl && !e.target.closest("button")) {
+        const scriptId = cardEl.dataset.openScript;
+        appData.activeScriptId = scriptId;
+        appData.view = "plan";
+        saveAppData();
         render();
         window.scrollTo(0, 0);
         return;
     }
 
-    // Cambio de fase en la vista de Plan
+    // Acciones dentro de las tarjetas del Dashboard
+    const dashActionBtn = e.target.closest("[data-dash-action]");
+    if (dashActionBtn) {
+        const action = dashActionBtn.dataset.dashAction;
+        const scriptId = dashActionBtn.dataset.scriptId;
+        if (action === "grabar") {
+            appData.activeScriptId = scriptId;
+            appData.view = "grabar";
+            saveAppData();
+            render();
+            window.scrollTo(0, 0);
+        } else if (action === "plan") {
+            appData.activeScriptId = scriptId;
+            appData.view = "plan";
+            saveAppData();
+            render();
+            window.scrollTo(0, 0);
+        } else if (action === "duplicate") {
+            duplicateScript(scriptId);
+            render();
+            showToast("Guion duplicado");
+        } else if (action === "delete") {
+            if (confirm("¿Deseas eliminar este guion de tu biblioteca?")) {
+                deleteScript(scriptId);
+                render();
+                showToast("Guion eliminado");
+            }
+        }
+        return;
+    }
+
+    const t = e.target.closest("button");
+    if (!t) return;
+
+    // Retorno al Dashboard
+    if (t.id === "btn-to-dashboard") {
+        appData.view = "dashboard";
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Creacion de nuevo guion
+    if (t.id === "btn-create-script" || t.id === "btn-create-script-empty") {
+        appData.view = "guion";
+        $("src").value = "";
+        $("script-title-input").value = "";
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        $("src").focus();
+        return;
+    }
+
+    // Exportar e Importar Respaldo
+    if (t.id === "btn-export-backup") {
+        exportBackup();
+        showToast("Respaldo descargado");
+        return;
+    }
+    if (t.id === "btn-import-trigger") {
+        $("file-import").click();
+        return;
+    }
+
+    // Cambio de vista principal desde tabs
+    if (t.dataset.v) {
+        appData.view = t.dataset.v;
+        if (appData.view === "guion") {
+            $("src").value = activeScript.text;
+            $("script-title-input").value = activeScript.title || "";
+        }
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Cambio de fase en vista Plan
     if (t.dataset.ph) {
-        appState.phase = t.dataset.ph;
-        saveState();
+        activeScript.phase = t.dataset.ph;
+        updateActiveScript({ phase: activeScript.phase });
         render();
         return;
     }
 
     // Salto directo a una fase
     if (t.dataset.phGo) {
-        appState.view = "plan";
-        appState.phase = t.dataset.phGo;
-        saveState();
+        appData.view = "plan";
+        activeScript.phase = t.dataset.phGo;
+        updateActiveScript({ phase: activeScript.phase });
+        saveAppData();
         render();
         window.scrollTo(0, 0);
         return;
     }
 
-    // Salto a una escena específica desde dots o lista de planos
+    // Salto a una escena especifica desde dots o shot list
     if (t.dataset.j !== undefined) {
-        appState.cur = +t.dataset.j;
-        appState.view = "grabar";
-        saveState();
+        activeScript.cur = +t.dataset.j;
+        appData.view = "grabar";
+        updateActiveScript({ cur: activeScript.cur });
+        saveAppData();
         render();
         window.scrollTo(0, 0);
         return;
     }
 
-    // Copiar bloques individuales de texto (captions, bios, etc.)
+    // Copiar bloques individuales de texto
     if (t.dataset.copy) {
         const el = $("cp" + t.dataset.copy);
         if (el) copyToClipboard(el.textContent, el);
@@ -535,61 +805,78 @@ document.addEventListener("click", e => {
     switch (t.id) {
         case "go": {
             const v = $("src").value.trim();
-            if (!v) return;
-            appState.text = v;
-            appState.done = {};
-            appState.cur = 0;
-            appState.phase = "grabar";
-            doc = parseScript(v);
-            appState.view = "plan";
-            saveState();
+            if (!v) {
+                showToast("Pega un guion para organizar");
+                return;
+            }
+            const customTitle = $("script-title-input").value.trim();
+            const parsed = parseScript(v);
+            const finalTitle = customTitle || parsed.title || "Nuevo Guion";
+
+            // Si estabamos editando el guion actual o creando uno nuevo
+            if (activeScript.text && v !== activeScript.text) {
+                // Crear como nuevo proyecto
+                createScript(finalTitle, v);
+            } else {
+                updateActiveScript({
+                    title: finalTitle,
+                    text: v,
+                    done: {},
+                    cur: 0,
+                    phase: "grabar",
+                });
+            }
+
+            appData.view = "plan";
+            saveAppData();
             render();
             window.scrollTo(0, 0);
-            showToast("Guion organizado con éxito");
+            showToast("Guion guardado en biblioteca");
             break;
         }
         case "clear": {
             $("src").value = "";
+            $("script-title-input").value = "";
             $("src").focus();
             break;
         }
         case "share": {
-            copyToClipboard(generateChecklistText(appState.phase));
+            copyToClipboard(generateChecklistText(activeScript.phase));
             break;
         }
         case "prev": {
-            appState.cur = Math.max(0, appState.cur - 1);
-            saveState();
+            activeScript.cur = Math.max(0, activeScript.cur - 1);
+            updateActiveScript({ cur: activeScript.cur });
             render();
             break;
         }
         case "next": {
-            if (sc[appState.cur]) {
-                const i = sc[appState.cur].i;
-                appState.done["s" + i] = true;
+            if (sc[activeScript.cur]) {
+                const i = sc[activeScript.cur].i;
+                activeScript.done["s" + i] = true;
                 triggerHapticFeedback();
             }
-            appState.cur++;
-            saveState();
+            activeScript.cur++;
+            updateActiveScript({ done: activeScript.done, cur: activeScript.cur });
             render();
             window.scrollTo(0, 0);
             break;
         }
         case "back": {
-            appState.cur = Math.max(0, sc.length - 1);
-            saveState();
+            activeScript.cur = Math.max(0, sc.length - 1);
+            updateActiveScript({ cur: activeScript.cur });
             render();
             break;
         }
         case "zp": {
-            appState.z = Math.min(1.8, +(appState.z + 0.15).toFixed(2));
-            saveState();
+            activeScript.z = Math.min(1.8, +(activeScript.z + 0.15).toFixed(2));
+            updateActiveScript({ z: activeScript.z });
             renderRec();
             break;
         }
         case "zm": {
-            appState.z = Math.max(0.8, +(appState.z - 0.15).toFixed(2));
-            saveState();
+            activeScript.z = Math.max(0.8, +(activeScript.z - 0.15).toFixed(2));
+            updateActiveScript({ z: activeScript.z });
             renderRec();
             break;
         }
@@ -599,8 +886,9 @@ document.addEventListener("click", e => {
                     ? "light"
                     : "dark";
             document.documentElement.setAttribute("data-theme", nextTheme);
-            appState.theme = nextTheme;
-            saveState();
+            appData.theme = nextTheme;
+            saveAppData();
+            updateHeader();
             showToast(`Tema ${nextTheme === "dark" ? "Oscuro" : "Claro"}`);
             break;
         }
@@ -611,53 +899,76 @@ document.addEventListener("click", e => {
     }
 });
 
-// Atajos de Teclado Útiles durante la Grabación
-document.addEventListener("keydown", e => {
-    // Si el usuario está escribiendo en el textarea, ignorar atajos
-    if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+// Importacion de Respaldo JSON
+const fileInput = $("file-import");
+if (fileInput) {
+    fileInput.addEventListener("change", e => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const imported = JSON.parse(ev.target.result);
+                if (imported && Array.isArray(imported.scripts)) {
+                    appData = imported;
+                    saveAppData();
+                    render();
+                    showToast("Biblioteca restaurada con exito");
+                } else {
+                    showToast("Formato de archivo no valido");
+                }
+            } catch (err) {
+                showToast("Error al leer el archivo");
+            }
+        };
+        reader.readAsText(file);
+    });
+}
 
-    if (appState.view === "grabar") {
+// Atajos de Teclado
+document.addEventListener("keydown", e => {
+    if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || e.target.isContentEditable)
+        return;
+
+    if (appData.view === "grabar") {
         const sc = getScenes();
         if (e.key === "ArrowRight") {
             e.preventDefault();
-            if (appState.cur < sc.length) {
-                appState.cur++;
-                saveState();
+            if (activeScript.cur < sc.length) {
+                activeScript.cur++;
+                updateActiveScript({ cur: activeScript.cur });
                 render();
             }
         } else if (e.key === "ArrowLeft") {
             e.preventDefault();
-            if (appState.cur > 0) {
-                appState.cur--;
-                saveState();
+            if (activeScript.cur > 0) {
+                activeScript.cur--;
+                updateActiveScript({ cur: activeScript.cur });
                 render();
             }
         } else if (e.key === " " || e.key === "Enter") {
             e.preventDefault();
-            if (sc[appState.cur]) {
-                const i = sc[appState.cur].i;
-                appState.done["s" + i] = true;
+            if (sc[activeScript.cur]) {
+                const i = sc[activeScript.cur].i;
+                activeScript.done["s" + i] = true;
                 triggerHapticFeedback();
-                appState.cur++;
-                saveState();
+                activeScript.cur++;
+                updateActiveScript({ done: activeScript.done, cur: activeScript.cur });
                 render();
             }
         }
     }
 });
 
-// Reactivar WakeLock cuando el usuario regresa a la pestaña
+// Reactivar WakeLock al regresar a la pestana
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-        manageWakeLock(appState.view === "grabar");
+        manageWakeLock(appData.view === "grabar");
     }
 });
 
-// Inicialización de Interfaz
-if (appState.theme && appState.theme !== "auto") {
-    document.documentElement.setAttribute("data-theme", appState.theme);
-}
-if ($("src")) {
-    $("src").value = appState.text;
+// Inicializacion de Tema e Interfaz
+if (appData.theme && appData.theme !== "auto") {
+    document.documentElement.setAttribute("data-theme", appData.theme);
 }
 render();

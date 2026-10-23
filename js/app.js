@@ -24,25 +24,6 @@ const getSecsOf = ph =>
         .filter(x => x.s.kind === "sec" && x.s.phase === ph);
 const isSceneDone = i => !!activeScript.done["s" + i];
 
-/**
- * Obtiene todas las claves unicas de checklist para una fase dada.
- * En la fase 'grabar', solo cuenta las escenas de rodaje.
- * @param {string} ph - Identificador de fase.
- * @returns {string[]}
- */
-function getItemKeys(ph) {
-    const keys = [];
-    if (ph === "grabar") {
-        getScenes().forEach(({ i }) => keys.push("s" + i));
-        return keys;
-    }
-    getSecsOf(ph).forEach(({ s, i }) =>
-        s.lines.forEach((l, k) => {
-            if (l.t === "item") keys.push(i + "-" + k);
-        })
-    );
-    return keys;
-}
 
 /**
  * Fases que tienen contenido disponible en el guion actual.
@@ -56,69 +37,114 @@ function getShownPhases() {
 }
 
 /**
- * Calcula el progreso de tareas de una fase.
- * @param {string} ph - Identificador de fase.
- * @returns {{ d: number, n: number, isScenes: boolean }}
+ * Calcula el progreso de un guion usando las mismas claves que Plan y Grabar:
+ * - Escenas ("s" + i, donde i es el indice dentro de doc.secs)
+ * - Items de fase (i + "-" + k, donde i es el indice dentro de doc.secs y k el de la linea)
+ * @param {object} [script] - Objeto de guion (por defecto activeScript).
+ * @returns {{
+ *   scenesTotal: number,
+ *   scenesDone: number,
+ *   scenePc: number,
+ *   total: number,
+ *   done: number,
+ *   percent: number,
+ *   byPhase: Object.<string, { d: number, n: number }>
+ * }}
  */
-function getProgress(ph) {
-    const keys = getItemKeys(ph);
+function getProgress(script) {
+    const s = script || activeScript;
+    if (!s || !s.text) {
+        return {
+            scenesTotal: 0,
+            scenesDone: 0,
+            scenePc: 0,
+            total: 0,
+            done: 0,
+            percent: 0,
+            byPhase: {},
+        };
+    }
+
+    const parsed = (s === activeScript && typeof doc !== "undefined" && doc) ? doc : parseScript(s.text);
+    const doneMap = s.done || {};
+
+    let scenesTotal = 0;
+    let scenesDone = 0;
+    let itemsTotal = 0;
+    let itemsDone = 0;
+
+    const byPhase = {};
+    PHASES.forEach(p => {
+        byPhase[p.id] = { d: 0, n: 0 };
+    });
+
+    parsed.secs.forEach((sec, i) => {
+        if (sec.kind === "scene") {
+            scenesTotal++;
+            const isDone = !!doneMap["s" + i];
+            if (isDone) scenesDone++;
+            if (byPhase["grabar"]) {
+                byPhase["grabar"].n++;
+                if (isDone) byPhase["grabar"].d++;
+            }
+        } else if (sec.kind === "sec") {
+            const ph = sec.phase || "notas";
+            sec.lines.forEach((l, k) => {
+                if (l.t === "item") {
+                    itemsTotal++;
+                    const isDone = !!doneMap[`${i}-${k}`];
+                    if (isDone) itemsDone++;
+                    if (byPhase[ph]) {
+                        byPhase[ph].n++;
+                        if (isDone) byPhase[ph].d++;
+                    }
+                }
+            });
+        }
+    });
+
+    const total = scenesTotal + itemsTotal;
+    const done = scenesDone + itemsDone;
+    const percent = total ? Math.round((done / total) * 100) : 0;
+    const scenePc = scenesTotal ? Math.round((scenesDone / scenesTotal) * 100) : 0;
+
     return {
-        d: keys.filter(x => activeScript.done[x]).length,
-        n: keys.length,
-        isScenes: ph === "grabar",
+        scenesTotal,
+        scenesDone,
+        scenePc,
+        total,
+        done,
+        percent,
+        byPhase,
     };
 }
 
 /**
- * Calcula el estado automatico de un guion para el Dashboard.
+ * Calcula el estado automatico de un guion para el Dashboard usando solo getProgress.
  * @param {object} s - Objeto de guion.
  * @returns {{ label: string, cls: string }}
  */
 function computeScriptStatus(s) {
-    const parsed = parseScript(s.text);
-    const scenes = parsed.secs.filter(x => x.kind === "scene");
-    if (!scenes.length) {
+    const prog = getProgress(s);
+    if (!prog.scenesTotal) {
         return { label: "Borrador", cls: "status-borrador" };
     }
 
-    const recordedCount = scenes.filter((_, idx) => !!s.done["s" + idx]).length;
-    if (recordedCount === 0) {
+    if (prog.scenesDone === 0) {
         return { label: "Por grabar", cls: "status-por-grabar" };
     }
-    if (recordedCount < scenes.length) {
-        return { label: `Grabando (${recordedCount}/${scenes.length})`, cls: "status-por-grabar" };
+    if (prog.scenesDone < prog.scenesTotal) {
+        return { label: `Grabando (${prog.scenesDone}/${prog.scenesTotal})`, cls: "status-por-grabar" };
     }
 
     // Todas las escenas grabadas
-    const editSecs = parsed.secs.filter(x => x.kind === "sec" && x.phase === "editar");
-    let totalEditItems = 0;
-    let doneEditItems = 0;
-    editSecs.forEach((sec, i) => {
-        sec.lines.forEach((l, k) => {
-            if (l.t === "item") {
-                totalEditItems++;
-                if (s.done[`${i}-${k}`]) doneEditItems++;
-            }
-        });
-    });
-
-    if (totalEditItems > 0 && doneEditItems < totalEditItems) {
+    const edit = prog.byPhase["editar"];
+    if (edit && edit.n > 0 && edit.d < edit.n) {
         return { label: "Grabado", cls: "status-grabado" };
     }
 
-    const pubSecs = parsed.secs.filter(x => x.kind === "sec" && x.phase === "publicar");
-    let totalPubItems = 0;
-    let donePubItems = 0;
-    pubSecs.forEach((sec, i) => {
-        sec.lines.forEach((l, k) => {
-            if (l.t === "item") {
-                totalPubItems++;
-                if (s.done[`${i}-${k}`]) donePubItems++;
-            }
-        });
-    });
-
-    if (totalPubItems > 0 && donePubItems < totalPubItems) {
+    const pub = prog.byPhase["publicar"];
+    if (pub && pub.n > 0 && pub.d < pub.n) {
         return { label: "Editado", cls: "status-editado" };
     }
 
@@ -135,20 +161,12 @@ function updateHeader() {
         titleEl.textContent = activeScript.title || doc.title;
     }
 
-    let d = 0,
-        n = 0;
-    PHASES.forEach(p => {
-        const r = getProgress(p.id);
-        d += r.d;
-        n += r.n;
-    });
-
-    const pc = n ? Math.round((d / n) * 100) : 0;
+    const prog = getProgress(activeScript);
     const cntEl = $("cnt");
     const barFillEl = $("barfill");
 
-    if (cntEl) cntEl.textContent = `${pc}%`;
-    if (barFillEl) barFillEl.style.width = `${pc}%`;
+    if (cntEl) cntEl.textContent = `${prog.percent}%`;
+    if (barFillEl) barFillEl.style.width = `${prog.percent}%`;
 
     // Boton de Tema en cabecera
     const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
@@ -183,11 +201,8 @@ function renderDashboard() {
 
     grid.innerHTML = appData.scripts
         .map(s => {
-            const parsed = parseScript(s.text);
-            const scenes = parsed.secs.filter(x => x.kind === "scene");
             const status = computeScriptStatus(s);
-            const recordedCount = scenes.filter((_, idx) => !!s.done["s" + idx]).length;
-            const progressPc = scenes.length ? Math.round((recordedCount / scenes.length) * 100) : 0;
+            const prog = getProgress(s);
             const isActive = s.id === appData.activeScriptId;
 
             // Formato de fecha relativo o corto
@@ -203,16 +218,16 @@ function renderDashboard() {
               <span class="dash-status ${status.cls}">${status.label}</span>
               <span class="dash-card-meta">${dateStr}</span>
             </div>
-            <h3 class="dash-card-title">${esc(s.title || parsed.title)}</h3>
+            <h3 class="dash-card-title">${esc(s.title || (parseScript(s.text).title))}</h3>
             <div class="dash-card-meta">
-              <span>${scenes.length} tomas</span>
+              <span>${prog.scenesDone}/${prog.scenesTotal} tomas</span>
               <span>·</span>
-              <span>${progressPc}% grabado</span>
+              <span>${prog.scenePc}% grabado</span>
             </div>
           </div>
 
           <div class="dash-card-progress">
-            <div class="p-bar"><i style="width: ${progressPc}%"></i></div>
+            <div class="p-bar"><i style="width: ${prog.scenePc}%"></i></div>
           </div>
 
           <div class="dash-card-actions">
@@ -310,11 +325,12 @@ function renderPlan() {
         ).id;
     }
 
+    const prog = getProgress(activeScript);
     const phasesContainer = $("phases");
     phasesContainer.style.setProperty("--n", shown.length);
     phasesContainer.innerHTML = shown
         .map(p => {
-            const r = getProgress(p.id);
+            const r = prog.byPhase[p.id] || { d: 0, n: 0 };
             const isFull = r.n > 0 && r.d === r.n;
             const countLabel =
                 p.id === "notas"

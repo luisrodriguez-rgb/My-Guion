@@ -1,0 +1,149 @@
+/* ==========================================================================
+   My-Guion - Variables de Diseño y Tokens
+   ========================================================================== */
+
+:root {
+    /* Paleta de colores base (Modo Claro) */
+    --bg: #eef0ee;
+    --surface: #ffffff;
+    --surface-hover: #f7f9f8;
+    --ink: #1d2321;
+    --muted: #5d6763;
+    --line: #d4d9d6;
+    --line-focus: #1d2321;
+
+    /* Acentos de claqueta y estado */
+    --accent: #d9481c;
+    --accent-ink: #ffffff;
+    --accent-hover: #bf3e16;
+    --tape: #f2c230;
+    --tape-ink: #1d2321;
+    --ok: #2f7d4f;
+    --ok-soft: #e1efe6;
+    --ok-hover: #276942;
+    --slate: #232a28;
+    --slate-fg: #f4f6f5;
+
+    /* Interlocutores de diálogo */
+    --p1: #2563a8;
+    --p1-bg: rgba(37, 99, 168, 0.12);
+    --p2: #8a3fb0;
+    --p2-bg: rgba(138, 63, 176, 0.12);
+
+    /* Superposición de pantalla (estilo teleprompter / overlay de video) */
+    --overlay: #111514;
+    --overlay-fg: #ffffff;
+
+    /* Tipografías */
+    --f-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+
+    /* Escala y transiciones */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.15);
+    --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Zoom de fuente para modo grabación (dinámico vía JS) */
+    --z: 1;
+}
+
+/* Modo Oscuro Automático */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #141817;
+        --surface: #1d2321;
+        --surface-hover: #262e2c;
+        --ink: #e9edeb;
+        --muted: #9aa5a0;
+        --line: #323b38;
+        --line-focus: #f4f6f5;
+
+        --accent: #f0683c;
+        --accent-ink: #1a0d08;
+        --accent-hover: #fa7b52;
+        --tape: #e8bb2a;
+        --tape-ink: #141817;
+        --ok: #5cc489;
+        --ok-soft: #1c3327;
+        --ok-hover: #71d49c;
+        --slate: #0c0f0e;
+        --slate-fg: #f4f6f5;
+
+        --p1: #6fa8ec;
+        --p1-bg: rgba(111, 168, 236, 0.15);
+        --p2: #c58ae6;
+        --p2-bg: rgba(197, 138, 230, 0.15);
+
+        --overlay: #000000;
+        --overlay-fg: #ffffff;
+        color-scheme: dark;
+    }
+}
+
+/* Modo Oscuro Forzado */
+:root[data-theme="dark"] {
+    --bg: #141817;
+    --surface: #1d2321;
+    --surface-hover: #262e2c;
+    --ink: #e9edeb;
+    --muted: #9aa5a0;
+    --line: #323b38;
+    --line-focus: #f4f6f5;
+
+    --accent: #f0683c;
+    --accent-ink: #1a0d08;
+    --accent-hover: #fa7b52;
+    --tape: #e8bb2a;
+    --tape-ink: #141817;
+    --ok: #5cc489;
+    --ok-soft: #1c3327;
+    --ok-hover: #71d49c;
+    --slate: #0c0f0e;
+    --slate-fg: #f4f6f5;
+
+    --p1: #6fa8ec;
+    --p1-bg: rgba(111, 168, 236, 0.15);
+    --p2: #c58ae6;
+    --p2-bg: rgba(197, 138, 230, 0.15);
+
+    --overlay: #000000;
+    --overlay-fg: #ffffff;
+    color-scheme: dark;
+}
+
+/* Modo Claro Forzado */
+:root[data-theme="light"] {
+    --bg: #eef0ee;
+    --surface: #ffffff;
+    --surface-hover: #f7f9f8;
+    --ink: #1d2321;
+    --muted: #5d6763;
+    --line: #d4d9d6;
+    --line-focus: #1d2321;
+
+    --accent: #d9481c;
+    --accent-ink: #ffffff;
+    --accent-hover: #bf3e16;
+    --tape: #f2c230;
+    --tape-ink: #1d2321;
+    --ok: #2f7d4f;
+    --ok-soft: #e1efe6;
+    --ok-hover: #276942;
+    --slate: #232a28;
+    --slate-fg: #f4f6f5;
+
+    --p1: #2563a8;
+    --p1-bg: rgba(37, 99, 168, 0.12);
+    --p2: #8a3fb0;
+    --p2-bg: rgba(138, 63, 176, 0.12);
+
+    --overlay: #111514;
+    --overlay-fg: #ffffff;
+    color-scheme: light;
+}

@@ -1,0 +1,736 @@
+/* ==========================================================================
+   My-Guion - Componentes, Teleprompter y Elementos Interactivos
+   ========================================================================== */
+
+/* Botones y Controles */
+button {
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+    border: none;
+    outline: none;
+    transition: var(--transition);
+}
+
+button:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+    outline: 3px solid var(--tape);
+    outline-offset: 2px;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.btn {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    user-select: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--line-focus);
+    transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+}
+
+.btn.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn.ghost {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.btn.ghost:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.btn.small {
+    padding: 7px 12px;
+    font-size: 0.85rem;
+}
+
+.btn.warn {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: transparent;
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Tipografía de ayuda y etiquetas */
+.lbl {
+    font-family: var(--f-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.hint {
+    color: var(--muted);
+    font-size: 0.92rem;
+    max-width: 65ch;
+    margin: 6px 0 14px;
+    line-height: 1.5;
+}
+
+textarea {
+    width: 100%;
+    min-height: 48vh;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    font-family: var(--f-mono);
+    font-size: 0.86rem;
+    line-height: 1.55;
+    resize: vertical;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+textarea:focus {
+    border-color: var(--ink);
+}
+
+/* Selector de Fases (Preparar, Grabar, Editar, Publicar...) */
+.phases {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.ph {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 10px 10px 9px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.ph:hover {
+    background: var(--surface-hover);
+    border-color: var(--line-focus);
+}
+
+.ph .k {
+    font-family: var(--f-mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    font-weight: 600;
+}
+
+.ph .n {
+    font-weight: 700;
+    font-size: 0.94rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.ph .p {
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+
+.ph .p i {
+    display: block;
+    height: 100%;
+    background: var(--ok);
+    transition: width 0.3s ease;
+}
+
+.ph[aria-selected="true"] {
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 1.5px var(--ink), var(--shadow-sm);
+}
+
+.ph.full .k {
+    color: var(--ok);
+}
+
+.phase-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0 12px;
+}
+
+.phase-bar h2 {
+    font-family: var(--f-display);
+    font-size: 2rem;
+    line-height: 1;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* Listas de Tarjetas y Checklists */
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.card h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    text-wrap: balance;
+}
+
+.card.notes {
+    background: transparent;
+    border-style: dashed;
+    box-shadow: none;
+}
+
+.items {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    margin: 0 -8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.item:hover {
+    background: var(--bg);
+}
+
+.item input {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    margin-top: 2px;
+    accent-color: var(--ok);
+    cursor: pointer;
+}
+
+.item span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 0.95rem;
+}
+
+.item.on span {
+    text-decoration: line-through;
+    color: var(--muted);
+}
+
+.lead {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin: 10px 0 4px;
+}
+
+.note {
+    color: var(--muted);
+    font-size: 0.93rem;
+    overflow-wrap: anywhere;
+    margin: 4px 0;
+}
+
+/* Bloques Copiables (Captions, Mensajes de WhatsApp, Redes) */
+.copy {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.copy-h {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+}
+
+.copy pre {
+    margin: 0;
+    padding: 14px;
+    white-space: pre-wrap;
+    font-family: var(--f-body);
+    font-size: 0.94rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+/* Lista de Planos (Shot List en Vista Plan / Grabar) */
+.shots {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.shot {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    text-align: left;
+    background: transparent;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    width: 100%;
+    transition: var(--transition);
+}
+
+.shot:first-child {
+    border-top: 0;
+}
+
+.shot:hover {
+    background: var(--surface-hover);
+}
+
+.shot .sn {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: 1.9rem;
+    line-height: 1;
+    color: var(--accent);
+    min-width: 1.8ch;
+    font-variant-numeric: tabular-nums;
+}
+
+.shot.d .sn {
+    color: var(--ok);
+}
+
+.shot .sm {
+    min-width: 0;
+}
+
+.shot .st {
+    font-weight: 600;
+    font-size: 0.98rem;
+    overflow-wrap: anywhere;
+}
+
+.shot .ss {
+    font-size: 0.85rem;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+    margin-top: 2px;
+}
+
+.shot .tm {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+    background: var(--bg);
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.shot.d .st {
+    text-decoration: line-through;
+    color: var(--muted);
+}
+
+/* Ficha de Escena y Modo Grabación (Teleprompter) */
+.scene {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin-top: 14px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    transition: border-color 0.25s ease;
+}
+
+.scene.d {
+    border-color: var(--ok);
+}
+
+.scene-h {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.scene-h .big {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: 4.4rem;
+    line-height: 0.82;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}
+
+.scene.d .big {
+    color: var(--ok);
+}
+
+.scene-h .meta {
+    min-width: 0;
+    flex: 1;
+}
+
+.pill {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--tape);
+    color: var(--tape-ink);
+}
+
+.scene-h h2 {
+    font-size: calc(1.28rem * var(--z, 1));
+    margin: 6px 0 0;
+    line-height: 1.3;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    font-weight: 700;
+}
+
+.field {
+    margin-top: 16px;
+}
+
+.action {
+    font-size: calc(1.05rem * var(--z, 1));
+    margin-top: 4px;
+    line-height: 1.45;
+}
+
+.say {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 10px;
+}
+
+.who {
+    flex: none;
+    font-family: var(--f-mono);
+    font-weight: 700;
+    font-size: 0.76rem;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    color: #ffffff;
+    background: var(--muted);
+    margin-top: 0.35em;
+    letter-spacing: 0.05em;
+}
+
+.who.p1 {
+    background: var(--p1);
+}
+
+.who.p2 {
+    background: var(--p2);
+}
+
+.say q {
+    quotes: none;
+    font-size: calc(1.42rem * var(--z, 1));
+    line-height: 1.35;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+/* Caja de Texto en Pantalla (Overlay de video simulado) */
+.screen {
+    margin-top: 8px;
+    background: var(--overlay);
+    color: var(--overlay-fg);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    font-size: calc(1.08rem * var(--z, 1));
+    overflow-wrap: anywhere;
+    border-left: 4px solid var(--tape);
+}
+
+.rec-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.size {
+    display: flex;
+    gap: 6px;
+}
+
+.size button {
+    width: 44px;
+    height: 38px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+}
+
+.size button:hover {
+    background: var(--surface-hover);
+    border-color: var(--line-focus);
+}
+
+details.remind {
+    margin-top: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+}
+
+details.remind summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.94rem;
+    user-select: none;
+}
+
+details.remind .items {
+    padding: 0 16px 12px;
+}
+
+/* Navegación del Teleprompter */
+.nav {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.nav .btn {
+    padding: 16px;
+    font-size: 1.05rem;
+}
+
+.nav .primary.isdone {
+    background: var(--ok);
+    border-color: var(--ok);
+}
+
+.nav .primary.isdone:hover {
+    background: var(--ok-hover);
+    border-color: var(--ok-hover);
+}
+
+/* Puntos de escena (Dots) */
+.dots {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    justify-content: center;
+}
+
+.dots button {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: var(--f-mono);
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dots button:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.dots button.d {
+    background: var(--ok-soft);
+    border-color: var(--ok);
+    color: var(--ok);
+}
+
+.dots button.c {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 800;
+    box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* Pantalla de Fin de Rodaje ("¡Corte!") */
+.wrapup {
+    text-align: center;
+    padding: 44px 16px;
+}
+
+.wrapup b {
+    font-family: var(--f-display);
+    font-size: 3.4rem;
+    text-transform: uppercase;
+    color: var(--ok);
+    display: block;
+    letter-spacing: 0.04em;
+}
+
+/* Notificación Flotante (Toast) */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    background: var(--slate);
+    color: var(--slate-fg);
+    padding: 10px 20px;
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    font-weight: 600;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    animation: toastPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+@keyframes toastPop {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 12px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+.empty {
+    padding: 36px 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: 1.05rem;
+}
+
+/* Footer de la Aplicación */
+.app-footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.app-footer a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+/* Responsividad en Móviles */
+@media (max-width: 540px) {
+    .phases {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scene-h .big {
+        font-size: 3.4rem;
+    }
+
+    .board h1 {
+        font-size: 1.35rem;
+    }
+
+    .nav {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Reducción de Movimiento Accesible */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

@@ -115,6 +115,18 @@
         </footer>
     </main>
 
+    <!-- Modal de Confirmacion Dentro de la Pagina -->
+    <div class="modal-backdrop" id="confirm-modal" hidden>
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <h3 id="modal-title">Confirmar</h3>
+            <p id="modal-msg" class="hint"></p>
+            <div class="modal-actions">
+                <button class="btn ghost" id="modal-btn-cancel">Cancelar</button>
+                <button class="btn primary" id="modal-btn-confirm">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notificacion Flotante (Toast) -->
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 

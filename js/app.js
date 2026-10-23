@@ -781,11 +781,20 @@ document.addEventListener("click", e => {
             render();
             showToast("Guion duplicado");
         } else if (action === "delete") {
-            if (confirm("¿Deseas eliminar este guion de tu biblioteca?")) {
-                deleteScript(scriptId);
-                render();
-                showToast("Guion eliminado");
-            }
+            const scriptToDelete = appData.scripts.find(s => s.id === scriptId);
+            const scriptTitle = scriptToDelete ? scriptToDelete.title : "este guion";
+            showConfirmModal({
+                title: "Eliminar guion",
+                message: `¿Deseas eliminar "${scriptTitle}" de tu biblioteca?`,
+                confirmText: "Eliminar",
+                confirmClass: "warn primary",
+            }).then(confirmed => {
+                if (confirmed) {
+                    deleteScript(scriptId);
+                    render();
+                    showToast("Guion eliminado");
+                }
+            });
         }
         return;
     }
@@ -987,6 +996,47 @@ document.addEventListener("click", e => {
     }
 });
 
+// Modal de Confirmacion Dentro de la Pagina
+let modalResolve = null;
+
+function showConfirmModal({ title, message, confirmText = "Confirmar", confirmClass = "primary" }) {
+    return new Promise(resolve => {
+        modalResolve = resolve;
+        const modal = $("confirm-modal");
+        const titleEl = $("modal-title");
+        const msgEl = $("modal-msg");
+        const confirmBtn = $("modal-btn-confirm");
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+        if (confirmBtn) {
+            confirmBtn.textContent = confirmText;
+            confirmBtn.className = `btn ${confirmClass}`;
+        }
+        if (modal) modal.hidden = false;
+    });
+}
+
+function closeConfirmModal(result) {
+    const modal = $("confirm-modal");
+    if (modal) modal.hidden = true;
+    if (modalResolve) {
+        modalResolve(result);
+        modalResolve = null;
+    }
+}
+
+const modalCancelBtn = $("modal-btn-cancel");
+if (modalCancelBtn) modalCancelBtn.addEventListener("click", () => closeConfirmModal(false));
+const modalConfirmBtn = $("modal-btn-confirm");
+if (modalConfirmBtn) modalConfirmBtn.addEventListener("click", () => closeConfirmModal(true));
+const modalBackdrop = $("confirm-modal");
+if (modalBackdrop) {
+    modalBackdrop.addEventListener("click", e => {
+        if (e.target === modalBackdrop) closeConfirmModal(false);
+    });
+}
+
 // Importacion de Respaldo JSON
 const fileInput = $("file-import");
 if (fileInput) {
@@ -994,19 +1044,55 @@ if (fileInput) {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = ev => {
+        reader.onload = async ev => {
             try {
                 const imported = JSON.parse(ev.target.result);
-                if (imported && Array.isArray(imported.scripts)) {
-                    appData = imported;
+                const importedScripts = Array.isArray(imported.scripts)
+                    ? imported.scripts
+                    : Array.isArray(imported)
+                    ? imported
+                    : null;
+
+                if (!importedScripts || !importedScripts.length) {
+                    showToast("El archivo no contiene guiones validos");
+                    return;
+                }
+
+                const count = importedScripts.length;
+                const confirmed = await showConfirmModal({
+                    title: "Importar guiones",
+                    message: `Se añadiran ${count} ${count === 1 ? "guion" : "guiones"} a tu biblioteca existente sin reemplazarla. ¿Deseas continuar?`,
+                    confirmText: "Añadir a la biblioteca",
+                    confirmClass: "primary",
+                });
+
+                if (confirmed) {
+                    const existingIds = new Set(appData.scripts.map(s => s.id));
+                    let addedCount = 0;
+                    importedScripts.forEach(s => {
+                        if (!s || !s.text) return;
+                        let newId = s.id || ("script-" + Date.now());
+                        while (existingIds.has(newId)) {
+                            newId = "script-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
+                        }
+                        existingIds.add(newId);
+                        appData.scripts.push({
+                            ...s,
+                            id: newId,
+                            title: s.title || "Guion importado",
+                            updatedAt: Date.now(),
+                        });
+                        addedCount++;
+                    });
+
                     saveAppData();
                     render();
-                    showToast("Biblioteca restaurada con exito");
-                } else {
-                    showToast("Formato de archivo no valido");
+                    showToast(`Se añadieron ${addedCount} guiones a la biblioteca`);
                 }
             } catch (err) {
-                showToast("Error al leer el archivo");
+                showToast("Error al leer el archivo JSON");
+            } finally {
+                fileInput.value = "";
             }
         };
         reader.readAsText(file);

@@ -6,6 +6,7 @@
 loadAppData();
 let activeScript = getActiveScript();
 let doc = parseScript(activeScript.text);
+let isNewScript = false;
 
 // Utilidades DOM
 const $ = id => document.getElementById(id);
@@ -117,6 +118,63 @@ function getProgress(script) {
         percent,
         byPhase,
     };
+}
+
+/**
+ * Conserva el progreso completado (done) entre la version previa y la nueva de un guion,
+ * manteniendo las escenas e items cuyo texto no haya cambiado.
+ * @param {string} oldText - Texto original del guion.
+ * @param {object} oldDone - Estado de casillas marcadas anterior.
+ * @param {string} newText - Nuevo texto a organizar.
+ * @returns {object} Objeto con las casillas preservadas.
+ */
+function reconcileDoneState(oldText, oldDone, newText) {
+    if (!oldDone || !Object.keys(oldDone).length) return {};
+    if (oldText === newText) return Object.assign({}, oldDone);
+
+    const oldParsed = parseScript(oldText);
+    const newParsed = parseScript(newText);
+    const newDone = {};
+
+    const doneSignatures = new Set();
+    const doneTitles = new Set();
+
+    oldParsed.secs.forEach((sec, i) => {
+        if (sec.kind === "scene" && oldDone["s" + i]) {
+            const sig = [clean(sec.title), clean(sec.action), (sec.says || []).map(x => clean(x.v)).join(" ")].join("||");
+            doneSignatures.add(sig);
+            if (sec.title) doneTitles.add(clean(sec.title));
+        }
+    });
+
+    const doneItems = new Set();
+    oldParsed.secs.forEach((sec, i) => {
+        if (sec.kind === "sec") {
+            sec.lines.forEach((l, k) => {
+                if (l.t === "item" && oldDone[`${i}-${k}`]) {
+                    doneItems.add(clean(l.v));
+                }
+            });
+        }
+    });
+
+    newParsed.secs.forEach((sec, i) => {
+        if (sec.kind === "scene") {
+            const sig = [clean(sec.title), clean(sec.action), (sec.says || []).map(x => clean(x.v)).join(" ")].join("||");
+            const cleanTitle = clean(sec.title);
+            if (doneSignatures.has(sig) || (cleanTitle && doneTitles.has(cleanTitle))) {
+                newDone["s" + i] = true;
+            }
+        } else if (sec.kind === "sec") {
+            sec.lines.forEach((l, k) => {
+                if (l.t === "item" && doneItems.has(clean(l.v))) {
+                    newDone[`${i}-${k}`] = true;
+                }
+            });
+        }
+    });
+
+    return newDone;
 }
 
 /**
@@ -737,6 +795,7 @@ document.addEventListener("click", e => {
 
     // Retorno al Dashboard
     if (t.id === "btn-to-dashboard") {
+        isNewScript = false;
         appData.view = "dashboard";
         saveAppData();
         render();
@@ -744,8 +803,9 @@ document.addEventListener("click", e => {
         return;
     }
 
-    // Creacion de nuevo guion
+    // Creacion de nuevo guion (boton aparte en la biblioteca)
     if (t.id === "btn-create-script" || t.id === "btn-create-script-empty") {
+        isNewScript = true;
         appData.view = "guion";
         $("src").value = "";
         $("script-title-input").value = "";
@@ -769,8 +829,12 @@ document.addEventListener("click", e => {
 
     // Cambio de vista principal desde tabs
     if (t.dataset.v) {
+        if (t.dataset.v !== "guion") {
+            isNewScript = false;
+        }
         appData.view = t.dataset.v;
         if (appData.view === "guion") {
+            isNewScript = false;
             $("src").value = activeScript.text;
             $("script-title-input").value = activeScript.title || "";
         }
@@ -827,27 +891,29 @@ document.addEventListener("click", e => {
             }
             const customTitle = $("script-title-input").value.trim();
             const parsed = parseScript(v);
-            const finalTitle = customTitle || parsed.title || "Nuevo Guion";
+            const finalTitle = customTitle || parsed.title || (isNewScript ? "Nuevo Guion" : activeScript.title);
 
-            // Si estabamos editando el guion actual o creando uno nuevo
-            if (activeScript.text && v !== activeScript.text) {
-                // Crear como nuevo proyecto
+            if (isNewScript) {
                 createScript(finalTitle, v);
+                isNewScript = false;
+                showToast("Nuevo guion creado");
             } else {
+                const preservedDone = (v === activeScript.text)
+                    ? (activeScript.done || {})
+                    : reconcileDoneState(activeScript.text, activeScript.done || {}, v);
+
                 updateActiveScript({
                     title: finalTitle,
                     text: v,
-                    done: {},
-                    cur: 0,
-                    phase: "grabar",
+                    done: preservedDone,
                 });
+                showToast("Guion actualizado");
             }
 
             appData.view = "plan";
             saveAppData();
             render();
             window.scrollTo(0, 0);
-            showToast("Guion guardado en biblioteca");
             break;
         }
         case "clear": {

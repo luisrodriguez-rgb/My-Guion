@@ -1,9 +1,9 @@
 /* ==========================================================================
-   My-Guion - Motor de Análisis y Parseo de Guiones
+   My-Guion - Motor de Analisis y Parseo de Guiones
    ========================================================================== */
 
 /**
- * Limpia caracteres de formato markdown y espacios redundantes.
+ * Limpia caracteres de formato markdown, checkboxes manuales y espacios redundantes.
  * @param {string} s - Texto a limpiar.
  * @returns {string} Texto normalizado.
  */
@@ -12,13 +12,14 @@ function clean(s) {
     return s
         .replace(/\*\*|__|`/g, "")
         .replace(/^\s*[*_]+|[*_]+\s*$/g, "")
+        .replace(/^\[\s?[xX ]?\]\s*/, "") // Elimina [ ] o [x] residuales de markdown
         .replace(/\s+/g, " ")
         .trim();
 }
 
 /**
- * Determina a qué fase del rodaje pertenece un encabezado o sección.
- * @param {string} title - Título a clasificar.
+ * Determina a que fase del rodaje pertenece un encabezado o seccion.
+ * @param {string} title - Titulo a clasificar.
  * @param {string|null} currentPhase - Fase activa previa.
  * @returns {string} Identificador de la fase.
  */
@@ -30,9 +31,9 @@ function phaseOf(title, currentPhase) {
 }
 
 /**
- * Identifica si una línea es un encabezado plano (sin prefijos markdown).
- * @param {string} raw - Línea original.
- * @param {string} t - Línea limpia.
+ * Identifica si una linea es un encabezado plano (sin prefijos markdown).
+ * @param {string} raw - Linea original.
+ * @param {string} t - Linea limpia.
  * @returns {boolean}
  */
 function isPlainHeading(raw, t) {
@@ -44,9 +45,9 @@ function isPlainHeading(raw, t) {
 }
 
 /**
- * Extrae diálogos con identificación de personajes (P1, P2, etc.) y texto residual de acción.
- * @param {string} text - Contenido de la celda o párrafo.
- * @param {string} fallbackWho - Personaje inferido del plano si no está explícito.
+ * Extrae dialogos con identificacion de personajes (P1, P2, etc.) y texto residual de accion.
+ * @param {string} text - Contenido de la celda o parrafo.
+ * @param {string} fallbackWho - Personaje inferido del plano si no esta explicito.
  * @returns {{ says: Array<{ who: string, v: string }>, rest: string }}
  */
 function parseQuotes(text, fallbackWho) {
@@ -66,7 +67,20 @@ function parseQuotes(text, fallbackWho) {
 }
 
 /**
- * Convierte una fila de tabla (tiempo, plano, qué pasa, texto en pantalla) a un objeto de escena estructurado.
+ * Valida si los encabezados de una tabla corresponden a un listado de tomas o escenas.
+ * Evita que tablas secundarias (como cronogramas de historias o calendarios) se conviertan en tomas de teleprompter.
+ * @param {string[]} hdr - Encabezados de la tabla.
+ * @returns {boolean}
+ */
+function isSceneTableHeaders(hdr) {
+    const joined = hdr.join(" ").toLowerCase();
+    const hasShotOrTime = /tiempo|seg|duraci|min|time|plano|toma|encuadre|shot|escena/.test(joined);
+    const hasActionOrSay = /pasa|acci[oó]n|descrip|di[aá]logo|dice|pantalla|overlay/.test(joined);
+    return hasShotOrTime && hasActionOrSay;
+}
+
+/**
+ * Convierte una fila de tabla (tiempo, plano, que pasa, texto en pantalla) a un objeto de escena estructurado.
  * @param {string[]} hdr - Encabezados de la tabla normalizados.
  * @param {string[]} c - Celdas de la fila.
  * @returns {object} Objeto de escena listo para el teleprompter y checklist.
@@ -116,7 +130,7 @@ function rowToScene(hdr, c) {
 
 /**
  * Parsea el texto completo pegado (incluso de Claude o ChatGPT sin formato previo)
- * y lo organiza en título, escenas de rodaje y fases de preparación, grabación, edición y publicación.
+ * y lo organiza en titulo, escenas de rodaje y fases de preparacion, grabacion, edicion y publicacion.
  * @param {string} text - Texto en bruto del guion.
  * @returns {{ title: string, secs: Array<object> }}
  */
@@ -146,7 +160,7 @@ function parseScript(text) {
 
     const flushCopy = () => {
         if (copy && para.length) {
-            copy.paras.push(para.join("\n"));
+            copy.paras.push(para.join("\n").trim());
         }
         para = [];
     };
@@ -167,7 +181,7 @@ function parseScript(text) {
         const raw = L[i];
         const t = clean(raw);
 
-        // Detección de tablas (tabuladores o tuberías markdown | )
+        // Deteccion de tablas (tabuladores o tuberias markdown | )
         const isTab = (raw.match(/\t/g) || []).length >= 2;
         const isPipe = /^\s*\|.*\|\s*$/.test(raw);
 
@@ -192,9 +206,21 @@ function parseScript(text) {
             const body = rows.filter(r => !/^\s*\|?[\s:|-]+\|?\s*$/.test(r));
             if (body.length > 0) {
                 const hdr = cells(body[0]);
-                body.slice(1).forEach(r => secs.push(rowToScene(hdr, cells(r))));
+                if (isSceneTableHeaders(hdr)) {
+                    // Tabla de tomas / escenas
+                    body.slice(1).forEach(r => secs.push(rowToScene(hdr, cells(r))));
+                    cur = null;
+                } else {
+                    // Otra tabla (ej: Historias de Instagram) -> convertir a items informativos
+                    ensure();
+                    body.slice(1).forEach(r => {
+                        const c = cells(r);
+                        const label = c[0] ? `${c[0]}: ` : "";
+                        const val = c.slice(1).join(" — ");
+                        cur.lines.push({ t: "item", v: `${label}${val}` });
+                    });
+                }
             }
-            cur = null;
             continue;
         }
 
@@ -206,7 +232,7 @@ function parseScript(text) {
         // Separadores horizontales (---, ***, ___)
         if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(raw)) continue;
 
-        // Encabezado explícito de escena (ej: "Escena 1: Introducción (0-3s)")
+        // Encabezado explicito de escena (ej: "Escena 1: Introduccion (0-3s)")
         const sm = raw.match(REGEX_PATTERNS.sceneHead);
         if (sm && !/^\s/.test(raw)) {
             endCopy();
@@ -252,35 +278,38 @@ function parseScript(text) {
             continue;
         }
 
-        // Bloque copiable continuo (captions, mensajes de difusión)
+        // Bloque copiable continuo (captions, mensajes de difusion, blockquotes)
         if (copy) {
             if (REGEX_PATTERNS.endCopy.test(t) && copy.paras.length + (para.length ? 1 : 0) > 0) {
                 endCopy();
             } else {
-                para.push(t);
+                // Elimina prefijo de cita markdown '>' para copiar limpio
+                para.push(raw.trim().replace(/^>\s?/, ""));
                 continue;
             }
         }
 
         ensure();
 
-        // Caption o copy en una sola línea entre comillas
-        const inlineCopy = t.match(REGEX_PATTERNS.inlineCopy);
+        // Caption o copy en una sola linea entre comillas
+        const inlineCopy = raw.match(REGEX_PATTERNS.inlineCopy);
         if (inlineCopy) {
-            cur.lines.push({ t: "lead", v: inlineCopy[1] });
+            const label = clean(inlineCopy[1]);
+            const content = clean(inlineCopy[2]);
+            cur.lines.push({ t: "lead", v: label });
             cur.lines.push({
                 t: "copy",
-                label: (inlineCopy[1].match(/caption|mensaje|copy|bio/i) || ["Texto"])[0],
-                paras: [inlineCopy[2]],
+                label: (label.match(/caption|mensaje|copy|bio/i) || ["Texto"])[0],
+                paras: [content],
             });
             continue;
         }
 
-        // Etiqueta iniciadora de bloque de copy
+        // Etiqueta iniciadora de bloque de copy (ej: "Caption:", "Mensaje:")
         const cl = t.match(REGEX_PATTERNS.copyLabel);
         if (cl) {
             const pre = t.slice(0, t.length - cl[0].length).trim();
-            if (pre) {
+            if (pre && pre !== "-") {
                 cur.lines.push({ t: cur.phase === "notas" ? "note" : "item", v: pre });
             }
             copy = {
@@ -293,10 +322,10 @@ function parseScript(text) {
             continue;
         }
 
-        // Viñeta o elemento de checklist
+        // Vineta o elemento de checklist
         const b = raw.match(REGEX_PATTERNS.bullet);
         const v = clean(b ? b[1] : t);
-        if (!v) continue;
+        if (!v || v === "-") continue;
 
         if (/:\s*$/.test(v)) {
             cur.lines.push({ t: "lead", v: v.replace(/:\s*$/, "") });

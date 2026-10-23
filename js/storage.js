@@ -1,31 +1,59 @@
 /* ==========================================================================
-   My-Guion - Gestión de Estado y Persistencia Local
+   My-Guion - Gestion de Estado y Multi-Proyectos (Dashboard)
    ========================================================================== */
 
 /**
- * Estado global reactivo de la aplicación.
+ * Estado general de la aplicacion con soporte multi-guion.
  */
-let appState = {
-    text: SAMPLE_SCRIPT,
-    done: {},
-    view: "plan",
-    phase: "grabar",
-    cur: 0,
-    z: 1,
-    open: false,
+let appData = {
+    activeScriptId: "seamos-genios",
+    view: "dashboard", // 'dashboard', 'plan', 'grabar', 'guion'
     theme: "auto",
+    scripts: [
+        {
+            id: "seamos-genios",
+            title: "Guion Seamos Genios (Pregunta tipo ICFES)",
+            text: SAMPLE_SCRIPT,
+            done: {},
+            cur: 0,
+            z: 1,
+            phase: "grabar",
+            open: false,
+            createdAt: Date.now() - 3600000,
+            updatedAt: Date.now(),
+        },
+    ],
 };
 
 /**
- * Carga el estado guardado en localStorage de forma segura con fallback.
+ * Carga el estado guardado en localStorage con migracion automatica de versiones previas.
  */
-function loadState() {
+function loadAppData() {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            if (parsed && typeof parsed === "object") {
-                appState = Object.assign(appState, parsed);
+            if (parsed && typeof parsed === "object" && Array.isArray(parsed.scripts)) {
+                appData = Object.assign(appData, parsed);
+                return;
+            }
+        }
+
+        // Migracion desde versiones anteriores (v2 o v3)
+        const oldV3 = localStorage.getItem("myguion.v3");
+        const oldV2 = localStorage.getItem("myguion.v2");
+        const legacy = oldV3 || oldV2;
+        if (legacy) {
+            const parsedLegacy = JSON.parse(legacy);
+            if (parsedLegacy && typeof parsedLegacy === "object" && parsedLegacy.text) {
+                appData.scripts[0].text = parsedLegacy.text;
+                appData.scripts[0].done = parsedLegacy.done || {};
+                appData.scripts[0].cur = parsedLegacy.cur || 0;
+                appData.scripts[0].z = parsedLegacy.z || 1;
+                appData.scripts[0].phase = parsedLegacy.phase || "grabar";
+                appData.theme = parsedLegacy.theme || "auto";
+                saveAppData();
+                return;
             }
         }
     } catch (e) {
@@ -34,35 +62,139 @@ function loadState() {
 }
 
 /**
- * Guarda el estado actual en localStorage de forma segura.
+ * Guarda el estado actual en localStorage.
  */
-function saveState() {
+function saveAppData() {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     } catch (e) {
         console.warn("No se pudo guardar en localStorage:", e);
     }
 }
 
 /**
- * Reinicia el progreso de las tareas marcadas conservando el guion actual.
+ * Obtiene el guion activo actual.
+ * @returns {object}
  */
-function resetProgress() {
-    appState.done = {};
-    appState.cur = 0;
-    saveState();
+function getActiveScript() {
+    let script = appData.scripts.find(s => s.id === appData.activeScriptId);
+    if (!script) {
+        script = appData.scripts[0];
+        if (script) {
+            appData.activeScriptId = script.id;
+        } else {
+            script = createScript("Nuevo Guion", SAMPLE_SCRIPT);
+        }
+    }
+    return script;
 }
 
 /**
- * Exporta el estado y el guion en un archivo JSON descargable.
+ * Crea un nuevo proyecto de guion y lo establece como activo.
+ * @param {string} title - Titulo del guion.
+ * @param {string} text - Contenido del guion.
+ * @returns {object} El nuevo guion creado.
+ */
+function createScript(title, text) {
+    const id = "script-" + Date.now();
+    const newScript = {
+        id,
+        title: title || "Nuevo Guion",
+        text: text || "",
+        done: {},
+        cur: 0,
+        z: 1,
+        phase: "grabar",
+        open: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+    };
+    appData.scripts.unshift(newScript);
+    appData.activeScriptId = id;
+    saveAppData();
+    return newScript;
+}
+
+/**
+ * Actualiza los datos del guion activo.
+ * @param {object} updates - Propiedades a actualizar.
+ */
+function updateActiveScript(updates) {
+    const script = getActiveScript();
+    if (script) {
+        Object.assign(script, updates);
+        script.updatedAt = Date.now();
+        saveAppData();
+    }
+}
+
+/**
+ * Duplica un guion existente.
+ * @param {string} id - Identificador del guion.
+ */
+function duplicateScript(id) {
+    const original = appData.scripts.find(s => s.id === id);
+    if (!original) return;
+    const copy = JSON.parse(JSON.stringify(original));
+    copy.id = "script-" + Date.now();
+    copy.title = `${original.title} (Copia)`;
+    copy.done = {};
+    copy.cur = 0;
+    copy.createdAt = Date.now();
+    copy.updatedAt = Date.now();
+    appData.scripts.unshift(copy);
+    saveAppData();
+}
+
+/**
+ * Elimina un guion por ID.
+ * @param {string} id - Identificador del guion.
+ */
+function deleteScript(id) {
+    if (appData.scripts.length <= 1) {
+        // Si es el ultimo, reiniciamos su contenido en lugar de dejar el array vacio
+        appData.scripts[0] = {
+            id: "script-" + Date.now(),
+            title: "Nuevo Guion",
+            text: "",
+            done: {},
+            cur: 0,
+            z: 1,
+            phase: "grabar",
+            open: false,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        };
+        appData.activeScriptId = appData.scripts[0].id;
+    } else {
+        appData.scripts = appData.scripts.filter(s => s.id !== id);
+        if (appData.activeScriptId === id) {
+            appData.activeScriptId = appData.scripts[0].id;
+        }
+    }
+    saveAppData();
+}
+
+/**
+ * Reinicia el progreso del guion activo.
+ */
+function resetActiveScriptProgress() {
+    updateActiveScript({ done: {}, cur: 0 });
+}
+
+/**
+ * Exporta todos los proyectos en un archivo JSON descargable.
  */
 function exportBackup() {
     const dataStr =
         "data:text/json;charset=utf-8," +
-        encodeURIComponent(JSON.stringify(appState, null, 2));
+        encodeURIComponent(JSON.stringify(appData, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `My-Guion-Backup-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadAnchor.setAttribute(
+        "download",
+        `My-Guion-Dashboard-Backup-${new Date().toISOString().slice(0, 10)}.json`
+    );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();

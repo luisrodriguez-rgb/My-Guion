@@ -127,7 +127,7 @@ Así, el video de regreso se convierte en la base de la campaña de inscripcione
 - **Bonus:** mensajes de WhatsApp preguntando por el PreICFES. No es el objetivo de este video, pero si llegan, es una muy buena señal.`;
 
 /** Clave de persistencia en localStorage */
-const STORAGE_KEY = "myguion.v3";
+const STORAGE_KEY = "myguion.v4";
 
 /** Definición de fases del rodaje con expresiones regulares de emparejamiento */
 const PHASES = [

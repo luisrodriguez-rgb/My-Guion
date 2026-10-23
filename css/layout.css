@@ -88,8 +88,12 @@ body::before {
 }
 
 .brand::before {
-    content: "🎬";
-    font-size: 0.8rem;
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tape);
 }
 
 .ttl {

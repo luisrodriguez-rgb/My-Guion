@@ -137,7 +137,7 @@ function renderItemsHTML(s, i) {
         <div class="copy">
           <div class="copy-h">
             <span class="lbl">${esc(l.label)}</span>
-            <button class="btn small" data-copy="${i}-${k}">📋 Copiar</button>
+            <button class="btn small" data-copy="${i}-${k}">Copiar</button>
           </div>
           <pre id="cp${i}-${k}">${esc(l.paras.join("\n\n"))}</pre>
         </div>`;
@@ -168,7 +168,7 @@ function renderPlan() {
             const isFull = r.n > 0 && r.d === r.n;
             return `
       <button class="ph ${isFull ? "full" : ""}" role="tab" data-ph="${p.id}" aria-selected="${appState.phase === p.id}">
-        <span class="k">${p.id === "notas" ? "INFO" : isFull ? "✓ LISTO" : `${r.d}/${r.n}`}</span>
+        <span class="k">${p.id === "notas" ? "INFO" : isFull ? "LISTO" : `${r.d}/${r.n}`}</span>
         <span class="n">${p.name}</span>
         <span class="p"><i style="width: ${r.n ? (r.d / r.n) * 100 : 0}%"></i></span>
       </button>`;
@@ -182,10 +182,10 @@ function renderPlan() {
       <div class="row">`;
 
     if (currentPhaseObj.id === "grabar" && getScenes().length) {
-        html += `<button class="btn primary small" data-v="grabar">🎬 Grabar escena por escena</button>`;
+        html += `<button class="btn primary small" data-v="grabar">Grabar escena por escena</button>`;
     }
     if (currentPhaseObj.id !== "notas") {
-        html += `<button class="btn small" id="share">📋 Copiar checklist</button>`;
+        html += `<button class="btn small" id="share">Copiar checklist</button>`;
     }
 
     html += `</div></div><div class="list">`;
@@ -289,7 +289,7 @@ function renderRec() {
         <p class="hint" style="margin-inline:auto; font-size:1.05rem">Todas las escenas han sido grabadas. Puedes continuar con la fase de Edición.</p>
         <div class="row" style="justify-content:center; margin-top:16px">
           <button class="btn" id="back">Volver a la última escena</button>
-          <button class="btn primary" data-ph-go="editar">Ir a Editar ✂️</button>
+          <button class="btn primary" data-ph-go="editar">Ir a Editar</button>
         </div>
       </div>
       ${renderDots(sc)}`;
@@ -364,7 +364,7 @@ function renderRec() {
     <div class="nav">
       <button class="btn" id="prev" ${appState.cur === 0 ? "disabled" : ""}>← Anterior</button>
       <button class="btn primary ${isDone ? "isdone" : ""}" id="next">
-        ${isDone ? "Siguiente →" : "✓ Grabada, siguiente"}
+        ${isDone ? "Siguiente →" : "Lista, siguiente"}
       </button>
     </div>
     ${renderDots(sc)}`;

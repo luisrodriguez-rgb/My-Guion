@@ -183,3 +183,12 @@ const SOCIAL_CHANNELS = [
     { id: "facebook", name: "Facebook", placeholder: "https://facebook.com/..." },
     { id: "whatsapp", name: "WhatsApp", placeholder: "Canal o grupo de difusión" },
 ];
+
+/** 4 Pasos canonicos y lineales de produccion para piezas de video */
+const CANONICAL_STEPS = [
+    { id: "antes", num: 1, name: "Preparar", prevText: null, prevPhase: null, nextText: "Siguiente: Grabar →", nextPhase: "grabar" },
+    { id: "grabar", num: 2, name: "Grabar", prevText: "← Preparar", prevPhase: "antes", nextText: "Siguiente: Editar →", nextPhase: "editar" },
+    { id: "editar", num: 3, name: "Editar", prevText: "← Grabar", prevPhase: "grabar", nextText: "Siguiente: Publicar →", nextPhase: "publicar" },
+    { id: "publicar", num: 4, name: "Publicar", prevText: "← Editar", prevPhase: "editar", nextText: "✓ Finalizar y volver a Inicio", nextPhase: "finish" },
+];
+

@@ -430,88 +430,151 @@ function renderItemsHTML(s, i) {
 }
 
 /**
- * Renderiza la vista de Plan con las fases y sus checklists.
+ * Renderiza la vista de Plan con la barra numerada de 4 pasos y navegacion lineal.
  */
 function renderPlan() {
-    const shown = getShownPhases();
-    if (!shown.find(p => p.id === activeScript.phase)) {
-        activeScript.phase = (
-            shown.find(p => p.id === "grabar") ||
-            shown[0] || { id: "notas" }
-        ).id;
+    // Garantizar que la fase corresponda a uno de los 4 pasos canonicos
+    if (!CANONICAL_STEPS.find(s => s.id === activeScript.phase)) {
+        activeScript.phase = "antes";
     }
 
+    const currentStep = CANONICAL_STEPS.find(s => s.id === activeScript.phase) || CANONICAL_STEPS[0];
     const prog = getProgress(activeScript);
+
     const phasesContainer = $("phases");
-    phasesContainer.style.setProperty("--n", shown.length);
-    phasesContainer.innerHTML = shown
-        .map(p => {
-            const r = prog.byPhase[p.id] || { d: 0, n: 0 };
-            const isFull = r.n > 0 && r.d === r.n;
-            const countLabel =
-                p.id === "notas"
-                    ? "INFO"
-                    : p.id === "grabar"
-                    ? `${r.d}/${r.n} tomas`
-                    : isFull
-                    ? "LISTO"
-                    : `${r.d}/${r.n}`;
+    if (phasesContainer) {
+        phasesContainer.innerHTML = `
+      <div class="step-progress-header" style="grid-column: 1 / -1;">
+        <div class="step-meta-row">
+          <div class="step-counter-badge">Paso ${currentStep.num} de 4 · ${currentStep.name}</div>
+          <div class="step-overall-meta">${prog.percent}% completado</div>
+        </div>
+        <div class="step-nav-grid" role="tablist" aria-label="Pasos del guion">
+          ${CANONICAL_STEPS.map(s => {
+              const isCurrent = s.id === currentStep.id;
+              const r = prog.byPhase[s.id] || { d: 0, n: 0 };
+              const isDone = s.id === "grabar"
+                  ? (prog.scenesTotal > 0 && prog.scenesDone === prog.scenesTotal)
+                  : (r.n > 0 && r.d === r.n);
+              const badgeText = s.id === "grabar"
+                  ? `${prog.scenesDone}/${prog.scenesTotal} tomas`
+                  : (isDone ? "✓ Listo" : (r.n ? `${r.d}/${r.n}` : "Info"));
+              return `
+            <button class="step-nav-item ${isCurrent ? "active" : ""} ${isDone ? "done" : ""}" data-step-id="${s.id}" role="tab" aria-selected="${isCurrent}">
+              <span class="step-nav-num">Paso ${s.num}</span>
+              <span class="step-nav-name">${s.name}</span>
+              <span class="step-nav-prog ${isDone ? "done" : ""}">${badgeText}</span>
+            </button>`;
+          }).join("")}
+        </div>
+      </div>`;
+    }
 
-            return `
-      <button class="ph ${isFull ? "full" : ""}" role="tab" data-ph="${p.id}" aria-selected="${activeScript.phase === p.id}">
-        <span class="k">${countLabel}</span>
-        <span class="n">${p.name}</span>
-        <span class="p"><i style="width: ${r.n ? (r.d / r.n) * 100 : 0}%"></i></span>
-      </button>`;
-        })
-        .join("");
-
-    const currentPhaseObj = PHASES.find(x => x.id === activeScript.phase);
     let html = `
     <div class="phase-bar">
-      <h2>${currentPhaseObj.name}</h2>
+      <h2>Paso ${currentStep.num}: ${currentStep.name}</h2>
       <div class="row">`;
 
-    if (currentPhaseObj.id === "grabar" && getScenes().length) {
-        html += `<button class="btn primary small" data-v="grabar">Grabar escena por escena</button>`;
+    if (currentStep.id === "grabar" && getScenes().length) {
+        html += `<button class="btn primary small" data-v="grabar">🎬 Grabar escena por escena</button>`;
     }
-    if (currentPhaseObj.id !== "notas") {
-        html += `<button class="btn small" id="share">Copiar checklist</button>`;
-    }
-
+    html += `<button class="btn small ghost" id="share">Copiar checklist</button>`;
     html += `</div></div><div class="list">`;
 
-    // Lista de planos numerados en fase Grabar
-    if (currentPhaseObj.id === "grabar" && getScenes().length) {
-        html += `
-      <div class="shots">
-        ${getScenes()
-            .map(({ s, i }, k) => {
-                const done = isSceneDone(i);
-                return `
-          <button class="shot ${done ? "d" : ""}" data-j="${k}">
-            <span class="sn">${k + 1}</span>
-            <span class="sm">
-              <span class="st">${esc(s.title)}</span>
-              ${s.screen ? `<span class="ss" style="display:block">En pantalla: ${esc(s.screen)}</span>` : ""}
-            </span>
-            <span class="tm">${esc(s.time || "")}</span>
-          </button>`;
-            })
-            .join("")}
-      </div>`;
+    // Paso 1: Preparar (incluye Notas informativas previas y seccion Antes)
+    if (currentStep.id === "antes") {
+        getSecsOf("notas").forEach(({ s, i }) => {
+            html += `
+          <div class="card notes">
+            ${s.title ? `<h3>${esc(s.title)}</h3>` : ""}
+            ${renderItemsHTML(s, i)}
+          </div>`;
+        });
+        getSecsOf("antes").forEach(({ s, i }) => {
+            html += `
+          <div class="card">
+            ${s.title ? `<h3>${esc(s.title)}</h3>` : ""}
+            ${renderItemsHTML(s, i)}
+          </div>`;
+        });
     }
 
-    // Secciones y tarjetas informativas/tareas de la fase
-    getSecsOf(currentPhaseObj.id).forEach(({ s, i }) => {
-        html += `
-      <div class="card ${currentPhaseObj.id === "notas" ? "notes" : ""}">
-        ${s.title ? `<h3>${esc(s.title)}</h3>` : ""}
-        ${renderItemsHTML(s, i)}
-      </div>`;
-    });
+    // Paso 2: Grabar (Lista de planos numerados + recordatorios de rodaje)
+    if (currentStep.id === "grabar") {
+        if (getScenes().length) {
+            html += `
+          <div class="shots">
+            ${getScenes()
+                .map(({ s, i }, k) => {
+                    const done = isSceneDone(i);
+                    return `
+              <button class="shot ${done ? "d" : ""}" data-j="${k}">
+                <span class="sn">${k + 1}</span>
+                <span class="sm">
+                  <span class="st">${esc(s.title)}</span>
+                  ${s.screen ? `<span class="ss" style="display:block">En pantalla: ${esc(s.screen)}</span>` : ""}
+                </span>
+                <span class="tm">${esc(s.time || "")}</span>
+              </button>`;
+                })
+                .join("")}
+          </div>`;
+        }
+        getSecsOf("grabar").forEach(({ s, i }) => {
+            html += `
+          <div class="card">
+            ${s.title ? `<h3>${esc(s.title)}</h3>` : ""}
+            ${renderItemsHTML(s, i)}
+          </div>`;
+        });
+    }
 
-    html += `</div>`;
+    // Paso 3: Editar (Tareas de edición, CapCut, subtítulos)
+    if (currentStep.id === "editar") {
+        getSecsOf("editar").forEach(({ s, i }) => {
+            html += `
+          <div class="card">
+            ${s.title ? `<h3>${esc(s.title)}</h3>` : ""}
+            ${renderItemsHTML(s, i)}
+          </div>`;
+        });
+    }
+
+    // Paso 4: Publicar (Copy, redes, canales)
+    if (currentStep.id === "publicar") {
+        getSecsOf("publicar").forEach(({ s, i }) => {
+            html += `
+          <div class="card">
+            ${s.title ? `<h3>${esc(s.title)}</h3>` : ""}
+            ${renderItemsHTML(s, i)}
+          </div>`;
+        });
+    }
+
+    // Botones grandes de navegacion lineal (Paso anterior / Paso siguiente)
+    html += `
+    </div>
+    <div class="step-footer-nav">
+      ${currentStep.prevPhase ? `
+        <button class="btn step-footer-btn" data-step-goto="${currentStep.prevPhase}">
+          ${currentStep.prevText}
+        </button>
+      ` : `
+        <button class="btn step-footer-btn ghost" data-step-goto="dashboard">
+          ← Volver al Inicio
+        </button>
+      `}
+      ${currentStep.nextPhase === "finish" ? `
+        <button class="btn primary step-footer-btn" data-step-goto="dashboard">
+          ${currentStep.nextText}
+        </button>
+      ` : `
+        <button class="btn primary step-footer-btn" data-step-goto="${currentStep.nextPhase}">
+          ${currentStep.nextText}
+        </button>
+      `}
+    </div>`;
+
     $("phase").innerHTML = html;
 }
 
@@ -957,7 +1020,31 @@ document.addEventListener("click", e => {
         return;
     }
 
-    // Cambio de fase en vista Plan
+    // Cambio de paso desde la barra numerada
+    if (t.dataset.stepId) {
+        activeScript.phase = t.dataset.stepId;
+        updateActiveScript({ phase: activeScript.phase });
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Navegacion lineal (botones grandes Anterior / Siguiente)
+    if (t.dataset.stepGoto) {
+        if (t.dataset.stepGoto === "dashboard") {
+            appData.view = "dashboard";
+        } else {
+            appData.view = "plan";
+            activeScript.phase = t.dataset.stepGoto;
+            updateActiveScript({ phase: activeScript.phase });
+        }
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Cambio de fase en vista Plan (compatibilidad)
     if (t.dataset.ph) {
         activeScript.phase = t.dataset.ph;
         updateActiveScript({ phase: activeScript.phase });

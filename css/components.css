@@ -669,12 +669,45 @@ textarea:focus {
 
 /* Barra Superior del Teleprompter */
 .rec-top {
+    position: sticky;
+    top: max(8px, env(safe-area-inset-top, 8px));
+    z-index: 50;
+    background: var(--bg);
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
+    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+}
+
+.btn-rec-exit {
+    background: #e74c3c;
+    color: #ffffff;
+    font-family: var(--f-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.35);
+    transition: var(--transition);
+    user-select: none;
+}
+
+.btn-rec-exit:hover {
+    background: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(231, 76, 60, 0.45);
+}
+
+.btn-rec-exit:active {
+    transform: translateY(0);
 }
 
 .scene-badge {

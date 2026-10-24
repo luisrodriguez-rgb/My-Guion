@@ -743,6 +743,11 @@ function render() {
 
     updateHeader();
 
+    const headerEl = $("app-header");
+    if (headerEl) {
+        headerEl.hidden = appData.view === "grabar";
+    }
+
     ["dashboard", "plan", "grabar", "guion"].forEach(v => {
         const viewEl = $("v-" + v);
         const tabEl = $("t-" + (v === "dashboard" ? "dash" : v));
@@ -902,6 +907,20 @@ document.addEventListener("click", e => {
         } else if (appData.view === "plan") {
             appData.view = "dashboard";
         }
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Boton "✕ Salir" del modo grabacion teleprompter
+    const exitRecBtn = e.target.closest("#btn-exit-rec");
+    if (exitRecBtn) {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+        appData.view = "plan";
+        activeScript.phase = "grabar";
         saveAppData();
         render();
         window.scrollTo(0, 0);

@@ -1217,6 +1217,11 @@ details.remind .items {
     color: var(--ok);
 }
 
+.dash-status.status-grabando {
+    background: rgba(243, 156, 18, 0.18);
+    color: #d35400;
+}
+
 .dash-status.status-en-edicion {
     background: rgba(52, 152, 219, 0.18);
     color: #3498db;

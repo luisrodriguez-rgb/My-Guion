@@ -190,6 +190,15 @@ function computeScriptStatus(s) {
     let baseStatus = "Guion listo";
     let cls = "status-guion-listo";
 
+    const allScenesDone = prog.scenesTotal > 0 && prog.scenesDone === prog.scenesTotal;
+    const someScenesDone = prog.scenesDone > 0 && prog.scenesDone < prog.scenesTotal;
+
+    const edit = prog.byPhase["editar"] || { d: 0, n: 0 };
+    const editAllDone = edit.n > 0 && edit.d === edit.n;
+    const editPartial = edit.d > 0 && edit.d < edit.n;
+
+    const allChannelsDone = s.channels && Object.values(s.channels).length > 0 && Object.values(s.channels).every(c => c && c.done);
+
     if (!s.text || !s.text.trim()) {
         label = "Idea";
         baseStatus = "Idea";
@@ -200,15 +209,6 @@ function computeScriptStatus(s) {
         const found = SCRIPT_STATUSES.find(st => st.label.toLowerCase() === s.manualStatus.toLowerCase());
         cls = found ? found.cls : "status-guion-listo";
     } else {
-        const allScenesDone = prog.scenesTotal > 0 && prog.scenesDone === prog.scenesTotal;
-        const someScenesDone = prog.scenesDone > 0 && prog.scenesDone < prog.scenesTotal;
-
-        const edit = prog.byPhase["editar"] || { d: 0, n: 0 };
-        const editAllDone = edit.n > 0 && edit.d === edit.n;
-        const editPartial = edit.d > 0 && edit.d < edit.n;
-
-        const allChannelsDone = s.channels && Object.values(s.channels).length > 0 && Object.values(s.channels).every(c => c && c.done);
-
         if (allChannelsDone) {
             label = "Publicado";
             baseStatus = "Publicado";
@@ -231,8 +231,8 @@ function computeScriptStatus(s) {
             cls = "status-grabado";
         } else if (someScenesDone) {
             label = `Grabando ${prog.scenesDone}/${prog.scenesTotal}`;
-            baseStatus = "Grabado";
-            cls = "status-grabado";
+            baseStatus = "En rodaje";
+            cls = "status-grabando";
         } else {
             label = "Guion listo";
             baseStatus = "Guion listo";
@@ -240,12 +240,22 @@ function computeScriptStatus(s) {
         }
     }
 
-    // Registrar cambio de estado en el historial con fecha
+    // Inicializar o sanitizar historial
     if (!Array.isArray(s.history)) {
         s.history = [];
     }
-    const lastHistory = s.history[s.history.length - 1];
-    if (!lastHistory || lastHistory.status !== baseStatus) {
+
+    // Limpieza retroactiva: si no es manual y no se han completado todas las tomas, eliminar "Grabado" falso
+    if (!s.manualStatus && !allScenesDone) {
+        s.history = s.history.filter(h => h.status !== "Grabado");
+    }
+
+    // Registrar en historial SOLO hitos reales alcanzados y SIN repetir estados ya registrados
+    const validMilestones = ["Idea", "Guion listo", "Grabado", "En edición", "Editado", "Programado", "Publicado"];
+    const isRealMilestone = validMilestones.includes(baseStatus);
+    const alreadyRecorded = s.history.some(h => h.status === baseStatus);
+
+    if (isRealMilestone && !alreadyRecorded) {
         s.history.push({ status: baseStatus, date: Date.now() });
         s.status = baseStatus;
         saveAppData();

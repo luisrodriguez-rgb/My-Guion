@@ -164,3 +164,22 @@ const REGEX_PATTERNS = {
     quotes: /(?:(P\d+|[A-ZÁÉÍÓÚ][\wáéíóúñ]{1,14})\s*:\s*)?[“"«]([^”"»]+)[”"»]/g,
     inlineCopy: /^(?:[-*•]\s*)?(?:\*\*)?(.*?(?:caption|mensaje|copy|bio)[^:“"]*?)(?:\*\*)?:\s*[*_“"«](.+?)[*_”"»]\s*$/i,
 };
+
+/** Estados del ciclo de vida de una pieza de contenido */
+const SCRIPT_STATUSES = [
+    { id: "idea", label: "Idea", cls: "status-idea" },
+    { id: "guion-listo", label: "Guion listo", cls: "status-guion-listo" },
+    { id: "grabado", label: "Grabado", cls: "status-grabado" },
+    { id: "en-edicion", label: "En edición", cls: "status-en-edicion" },
+    { id: "editado", label: "Editado", cls: "status-editado" },
+    { id: "programado", label: "Programado", cls: "status-programado" },
+    { id: "publicado", label: "Publicado", cls: "status-publicado" },
+];
+
+/** Canales y redes sociales de publicacion */
+const SOCIAL_CHANNELS = [
+    { id: "instagram", name: "Instagram", placeholder: "https://instagram.com/reel/..." },
+    { id: "tiktok", name: "TikTok", placeholder: "https://tiktok.com/@.../video/..." },
+    { id: "facebook", name: "Facebook", placeholder: "https://facebook.com/..." },
+    { id: "whatsapp", name: "WhatsApp", placeholder: "Canal o grupo de difusión" },
+];

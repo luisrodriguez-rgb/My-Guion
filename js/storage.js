@@ -3,6 +3,18 @@
    ========================================================================== */
 
 /**
+ * Canales por defecto de distribucion social.
+ */
+function getDefaultChannels() {
+    return {
+        instagram: { done: false, date: null, url: "" },
+        tiktok: { done: false, date: null, url: "" },
+        facebook: { done: false, date: null, url: "" },
+        whatsapp: { done: false, date: null, url: "" },
+    };
+}
+
+/**
  * Estado general de la aplicacion con soporte multi-guion.
  */
 let appData = {
@@ -17,8 +29,15 @@ let appData = {
             done: {},
             cur: 0,
             z: 1,
-            phase: "grabar",
+            phase: "antes",
             open: false,
+            status: "Guion listo",
+            manualStatus: null,
+            publishDate: "",
+            channels: getDefaultChannels(),
+            history: [
+                { status: "Guion listo", date: Date.now() - 3600000 },
+            ],
             createdAt: Date.now() - 3600000,
             updatedAt: Date.now(),
         },
@@ -35,6 +54,28 @@ function loadAppData() {
             const parsed = JSON.parse(stored);
             if (parsed && typeof parsed === "object" && Array.isArray(parsed.scripts)) {
                 appData = Object.assign(appData, parsed);
+
+                // Migracion segura: garantizar campos de seguimiento sin perder tareas chuleadas
+                appData.scripts.forEach(s => {
+                    if (!s.channels || typeof s.channels !== "object") {
+                        s.channels = getDefaultChannels();
+                    } else {
+                        // Garantizar que esten las 4 redes
+                        const def = getDefaultChannels();
+                        Object.keys(def).forEach(k => {
+                            if (!s.channels[k]) s.channels[k] = def[k];
+                        });
+                    }
+                    if (s.publishDate === undefined) s.publishDate = "";
+                    if (!Array.isArray(s.history)) {
+                        s.history = [
+                            { status: s.status || "Guion listo", date: s.createdAt || Date.now() }
+                        ];
+                    }
+                    if (!s.status) s.status = "Guion listo";
+                    if (!s.phase) s.phase = "antes";
+                });
+                saveAppData();
                 return;
             }
         }
@@ -50,7 +91,7 @@ function loadAppData() {
                 appData.scripts[0].done = parsedLegacy.done || {};
                 appData.scripts[0].cur = parsedLegacy.cur || 0;
                 appData.scripts[0].z = parsedLegacy.z || 1;
-                appData.scripts[0].phase = parsedLegacy.phase || "grabar";
+                appData.scripts[0].phase = parsedLegacy.phase || "antes";
                 appData.theme = parsedLegacy.theme || "auto";
                 saveAppData();
                 return;
@@ -97,6 +138,8 @@ function getActiveScript() {
  */
 function createScript(title, text) {
     const id = "script-" + Date.now();
+    const now = Date.now();
+    const initStatus = text ? "Guion listo" : "Idea";
     const newScript = {
         id,
         title: title || "Nuevo Guion",
@@ -104,10 +147,17 @@ function createScript(title, text) {
         done: {},
         cur: 0,
         z: 1,
-        phase: "grabar",
+        phase: "antes",
         open: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        status: initStatus,
+        manualStatus: null,
+        publishDate: "",
+        channels: getDefaultChannels(),
+        history: [
+            { status: initStatus, date: now }
+        ],
+        createdAt: now,
+        updatedAt: now,
     };
     appData.scripts.unshift(newScript);
     appData.activeScriptId = id;
@@ -136,12 +186,18 @@ function duplicateScript(id) {
     const original = appData.scripts.find(s => s.id === id);
     if (!original) return;
     const copy = JSON.parse(JSON.stringify(original));
-    copy.id = "script-" + Date.now();
+    const now = Date.now();
+    copy.id = "script-" + now;
     copy.title = `${original.title} (Copia)`;
     copy.done = {};
     copy.cur = 0;
-    copy.createdAt = Date.now();
-    copy.updatedAt = Date.now();
+    copy.status = "Guion listo";
+    copy.manualStatus = null;
+    copy.publishDate = "";
+    copy.channels = getDefaultChannels();
+    copy.history = [{ status: "Guion listo", date: now }];
+    copy.createdAt = now;
+    copy.updatedAt = now;
     appData.scripts.unshift(copy);
     saveAppData();
 }

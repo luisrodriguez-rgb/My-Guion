@@ -238,6 +238,64 @@ function updateHeader() {
     if (backDashBtn) {
         backDashBtn.style.display = appData.view === "dashboard" ? "none" : "inline-block";
     }
+
+    updateBreadcrumbs();
+}
+
+/**
+ * Actualiza la ruta de navegacion fija (breadcrumbs) y el boton global Volver.
+ */
+function updateBreadcrumbs() {
+    const backBtn = $("btn-global-back");
+    const sepScript = $("crumb-sep-script");
+    const crumbScript = $("crumb-script");
+    const sepStep = $("crumb-sep-step");
+    const crumbStep = $("crumb-step");
+
+    if (appData.view === "dashboard") {
+        if (backBtn) backBtn.hidden = true;
+        if (sepScript) sepScript.hidden = true;
+        if (crumbScript) crumbScript.hidden = true;
+        if (sepStep) sepStep.hidden = true;
+        if (crumbStep) crumbStep.hidden = true;
+    } else {
+        if (backBtn) backBtn.hidden = false;
+        if (sepScript) sepScript.hidden = false;
+        if (crumbScript) {
+            crumbScript.hidden = false;
+            const scriptTitle = activeScript.title || "Guion";
+            crumbScript.textContent = scriptTitle;
+            crumbScript.title = scriptTitle;
+        }
+
+        if (appData.view === "guion") {
+            if (sepStep) sepStep.hidden = false;
+            if (crumbStep) {
+                crumbStep.hidden = false;
+                crumbStep.textContent = "Editar texto";
+            }
+        } else if (appData.view === "grabar") {
+            if (sepStep) sepStep.hidden = false;
+            if (crumbStep) {
+                crumbStep.hidden = false;
+                crumbStep.textContent = "Teleprompter";
+            }
+        } else {
+            const phaseNames = {
+                notas: "Preparar",
+                antes: "Preparar",
+                grabar: "Grabar",
+                editar: "Editar",
+                publicar: "Publicar",
+            };
+            const stepName = phaseNames[activeScript.phase] || "Preparar";
+            if (sepStep) sepStep.hidden = false;
+            if (crumbStep) {
+                crumbStep.hidden = false;
+                crumbStep.textContent = stepName;
+            }
+        }
+    }
 }
 
 /**
@@ -747,6 +805,46 @@ document.addEventListener(
 
 // Delegacion de Clics en la Aplicacion
 document.addEventListener("click", e => {
+    // Navegacion por Breadcrumbs (Ruta fija)
+    const crumbHome = e.target.closest("#crumb-home");
+    if (crumbHome) {
+        e.preventDefault();
+        isNewScript = false;
+        appData.view = "dashboard";
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    const crumbScript = e.target.closest("#crumb-script");
+    if (crumbScript) {
+        e.preventDefault();
+        appData.view = "plan";
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Boton global Volver
+    const backBtn = e.target.closest("#btn-global-back");
+    if (backBtn) {
+        if (appData.view === "grabar") {
+            appData.view = "plan";
+            activeScript.phase = "grabar";
+        } else if (appData.view === "guion") {
+            appData.view = isNewScript ? "dashboard" : "plan";
+            isNewScript = false;
+        } else if (appData.view === "plan") {
+            appData.view = "dashboard";
+        }
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
     // Abrir tarjeta desde el Dashboard
     const cardEl = e.target.closest("[data-open-script]");
     if (cardEl && !e.target.closest("button")) {

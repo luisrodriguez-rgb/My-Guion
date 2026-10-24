@@ -20,12 +20,24 @@
 </head>
 <body>
     <!-- Encabezado de Claqueta Cinematografica -->
-    <header class="board gut" role="banner">
+    <header class="board gut" role="banner" id="app-header">
         <div class="stripes gut" aria-hidden="true"></div>
+        <div class="top-nav-bar wrap">
+            <button class="nav-back-btn" id="btn-global-back" title="Volver a la pantalla anterior" hidden>
+                <span class="nav-back-icon" aria-hidden="true">←</span> Volver
+            </button>
+            <nav class="breadcrumbs" id="breadcrumbs" aria-label="Ruta de navegación">
+                <a href="#" class="crumb-link" id="crumb-home">Inicio</a>
+                <span class="crumb-sep" id="crumb-sep-script" hidden aria-hidden="true">›</span>
+                <a href="#" class="crumb-link" id="crumb-script" hidden>Guion</a>
+                <span class="crumb-sep" id="crumb-sep-step" hidden aria-hidden="true">›</span>
+                <span class="crumb-current" id="crumb-step" hidden>Preparar</span>
+            </nav>
+        </div>
         <div class="board-in wrap">
             <div class="ttl">
                 <div class="ttl-meta">
-                    <button class="board-nav-btn" id="btn-to-dashboard" title="Ir a la biblioteca de guiones">Biblioteca</button>
+                    <button class="board-nav-btn" id="btn-to-dashboard" title="Ir a la biblioteca de guiones" style="display: none;">Biblioteca</button>
                     <div class="brand">My-Guion · Produccion</div>
                 </div>
                 <h1 id="vtitle" contenteditable="true" spellcheck="false" title="Haz clic para editar el nombre del video">Guion</h1>

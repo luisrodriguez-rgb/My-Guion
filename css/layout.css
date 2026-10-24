@@ -72,6 +72,88 @@ body::before {
     opacity: 0.95;
 }
 
+/* Barra de navegacion superior fija y ruta breadcrumbs */
+.top-nav-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-block: 7px 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.85rem;
+    min-height: 38px;
+}
+
+.nav-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    font-family: var(--f-body);
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.nav-back-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    font-family: var(--f-body);
+    font-size: 0.82rem;
+    color: var(--slate-fg);
+}
+
+.breadcrumbs::-webkit-scrollbar {
+    display: none;
+}
+
+.crumb-link {
+    color: var(--slate-fg);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.crumb-link:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.crumb-sep {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.85rem;
+    user-select: none;
+}
+
+.crumb-current {
+    color: var(--tape);
+    font-weight: 600;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .board-in {
     display: flex;
     gap: 14px;

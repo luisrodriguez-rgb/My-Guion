@@ -39,7 +39,8 @@ function phaseOf(title, currentPhase) {
  */
 function isPlainHeading(raw, t) {
     if (/^\s/.test(raw) || t.length > 60 || t.length < 3) return false;
-    if (!/^[A-ZÁÉÍÓÚÑ0-9]/.test(t)) return false;
+    if (/^\d+[.)]\s/.test(t)) return false; // Viñetas numeradas (1. item o 1) item), no encabezados
+    if (!/^[A-ZÁÉÍÓÚÑ]/.test(t)) return false;
     if (/[.,;:!?…"”»'’]$/.test(t) || /\p{Extended_Pictographic}$/u.test(t)) return false;
     if (/:\s/.test(t)) return false;
     return true;

@@ -72,7 +72,7 @@ Duración: entre 20 y 25 segundos. "P1" eres tú y "P2" es tu hermano; pueden in
 **Regla de oro:** suban el archivo original a cada plataforma. No compartan el video de TikTok con marca de agua en Instagram, porque Instagram le baja el alcance.
 
 **Antes de publicar, preparen el perfil.** El video traerá visitas al perfil y tiene que estar listo para recibirlas:
-- [ ] Bio actualizada, con algo como: *"PreICFES Saber 11 · Inscripciones abiertas Intensivo"*.
+- [ ] Bio actualizada, con algo como: "PreICFES Saber 11 · Inscripciones abiertas Intensivo".
 - [ ] Link directo al WhatsApp con un mensaje automático, por ejemplo: "Hola, quiero información del PreICFES".
 - [ ] La misma bio en Instagram, TikTok y Facebook.
 

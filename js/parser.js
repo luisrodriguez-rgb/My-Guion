@@ -11,7 +11,8 @@ function clean(s) {
     if (!s) return "";
     return s
         .replace(/\*\*|__|`/g, "")
-        .replace(/^\s*[*_]+|[*_]+\s*$/g, "")
+        .replace(/\*/g, "") // Elimina asteriscos sueltos o de cursiva markdown
+        .replace(/^\s*[_]+|[_]+\s*$/g, "")
         .replace(/^\[\s?[xX ]?\]\s*/, "") // Elimina [ ] o [x] residuales de markdown
         .replace(/\s+/g, " ")
         .trim();
@@ -352,7 +353,9 @@ function parseScript(text) {
         }
 
         // Analisis de Tareas vs Informacion:
-        // Solo las lineas con casilla explicita '- [ ]' o items en secciones explicitas de checklist son tareas interactivas.
+        // Las viñetas normales (-, •, números) y casillas [ ] dentro de las fases
+        // (Preparar, Grabar, Editar, Publicar) son tareas con casilla.
+        // Solo son información: párrafos explicativos, tablas y textos para copiar.
         const hasExplicitCheckbox = /^\s*(?:[-*•]\s*)?\[\s?[xX ]?\]\s*(.*)$/.test(raw);
         const bulletMatch = raw.match(/^\s*(?:[-*•·▪►➤✅✔☑☐□]|\d+[.)])\s+(.*)$/);
 
@@ -366,20 +369,12 @@ function parseScript(text) {
             const v = clean(bulletMatch[1]);
             if (!v || v === "-") continue;
 
-            const isChecklistSection =
-                /checklist|antes|prepar|material|equipo|vestuario/i.test(cur.title) ||
-                cur.phase === "antes";
-
-            if (isChecklistSection) {
-                cur.lines.push({ t: "item", v });
-            } else {
-                // En secciones informativas (Publicar, Consejos, Metricas), los puntos son notas de referencia
-                cur.lines.push({ t: "note", v: "• " + v });
-            }
+            // En todas las fases de trabajo (antes, grabar, editar, publicar), las viñetas son tareas interactivas
+            cur.lines.push({ t: "item", v });
             continue;
         }
 
-        // Texto regular o parrafo informativo
+        // Texto regular o parrafo explicativo (informacion de referencia)
         cur.lines.push({ t: "note", v: t });
     }
 

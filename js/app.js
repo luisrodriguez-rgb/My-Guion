@@ -178,35 +178,80 @@ function reconcileDoneState(oldText, oldDone, newText) {
 }
 
 /**
- * Calcula el estado automatico de un guion para el Dashboard usando solo getProgress.
+ * Calcula el estado del ciclo de vida de una pieza (automatico o manual) y registra el historial con fechas.
  * @param {object} s - Objeto de guion.
- * @returns {{ label: string, cls: string }}
+ * @returns {{ label: string, cls: string, baseStatus: string }}
  */
 function computeScriptStatus(s) {
+    if (!s) return { label: "Idea", cls: "status-idea", baseStatus: "Idea" };
+
     const prog = getProgress(s);
-    if (!prog.scenesTotal) {
-        return { label: "Borrador", cls: "status-borrador" };
+    let label = "Guion listo";
+    let baseStatus = "Guion listo";
+    let cls = "status-guion-listo";
+
+    if (!s.text || !s.text.trim()) {
+        label = "Idea";
+        baseStatus = "Idea";
+        cls = "status-idea";
+    } else if (s.manualStatus) {
+        baseStatus = s.manualStatus;
+        label = s.manualStatus;
+        const found = SCRIPT_STATUSES.find(st => st.label.toLowerCase() === s.manualStatus.toLowerCase());
+        cls = found ? found.cls : "status-guion-listo";
+    } else {
+        const allScenesDone = prog.scenesTotal > 0 && prog.scenesDone === prog.scenesTotal;
+        const someScenesDone = prog.scenesDone > 0 && prog.scenesDone < prog.scenesTotal;
+
+        const edit = prog.byPhase["editar"] || { d: 0, n: 0 };
+        const editAllDone = edit.n > 0 && edit.d === edit.n;
+        const editPartial = edit.d > 0 && edit.d < edit.n;
+
+        const allChannelsDone = s.channels && Object.values(s.channels).length > 0 && Object.values(s.channels).every(c => c && c.done);
+
+        if (allChannelsDone) {
+            label = "Publicado";
+            baseStatus = "Publicado";
+            cls = "status-publicado";
+        } else if (s.publishDate && new Date(s.publishDate).getTime() > Date.now()) {
+            label = "Programado";
+            baseStatus = "Programado";
+            cls = "status-programado";
+        } else if (editAllDone) {
+            label = "Editado";
+            baseStatus = "Editado";
+            cls = "status-editado";
+        } else if (editPartial) {
+            label = `En edición ${edit.d}/${edit.n}`;
+            baseStatus = "En edición";
+            cls = "status-en-edicion";
+        } else if (allScenesDone) {
+            label = "Grabado";
+            baseStatus = "Grabado";
+            cls = "status-grabado";
+        } else if (someScenesDone) {
+            label = `Grabando ${prog.scenesDone}/${prog.scenesTotal}`;
+            baseStatus = "Grabado";
+            cls = "status-grabado";
+        } else {
+            label = "Guion listo";
+            baseStatus = "Guion listo";
+            cls = "status-guion-listo";
+        }
     }
 
-    if (prog.scenesDone === 0) {
-        return { label: "Por grabar", cls: "status-por-grabar" };
+    // Registrar cambio de estado en el historial con fecha
+    if (!Array.isArray(s.history)) {
+        s.history = [];
     }
-    if (prog.scenesDone < prog.scenesTotal) {
-        return { label: `Grabando (${prog.scenesDone}/${prog.scenesTotal})`, cls: "status-por-grabar" };
-    }
-
-    // Todas las escenas grabadas
-    const edit = prog.byPhase["editar"];
-    if (edit && edit.n > 0 && edit.d < edit.n) {
-        return { label: "Grabado", cls: "status-grabado" };
+    const lastHistory = s.history[s.history.length - 1];
+    if (!lastHistory || lastHistory.status !== baseStatus) {
+        s.history.push({ status: baseStatus, date: Date.now() });
+        s.status = baseStatus;
+        saveAppData();
     }
 
-    const pub = prog.byPhase["publicar"];
-    if (pub && pub.n > 0 && pub.d < pub.n) {
-        return { label: "Editado", cls: "status-editado" };
-    }
-
-    return { label: "Publicado", cls: "status-publicado" };
+    return { label, cls, baseStatus };
 }
 
 /**
@@ -470,7 +515,36 @@ function renderPlan() {
       </div>`;
     }
 
+    const statusObj = computeScriptStatus(activeScript);
+    const historyTrailHTML = (activeScript.history && activeScript.history.length)
+        ? activeScript.history.map(h => {
+            const dStr = new Date(h.date).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+            return `<span class="history-item"><b>${esc(h.status)}</b> el ${dStr}</span>`;
+          }).join(" · ")
+        : "Sin cambios registrados";
+
     let html = `
+    <div class="script-status-tracker">
+      <div class="tracker-left">
+        <label for="status-override-select" class="tracker-label">Estado:</label>
+        <select id="status-override-select" class="tracker-select" title="Seleccionar estado manual o automático">
+          <option value="" ${!activeScript.manualStatus ? "selected" : ""}>Auto (${statusObj.label})</option>
+          <option value="Idea" ${activeScript.manualStatus === "Idea" ? "selected" : ""}>Idea</option>
+          <option value="Guion listo" ${activeScript.manualStatus === "Guion listo" ? "selected" : ""}>Guion listo</option>
+          <option value="Grabado" ${activeScript.manualStatus === "Grabado" ? "selected" : ""}>Grabado</option>
+          <option value="En edición" ${activeScript.manualStatus === "En edición" ? "selected" : ""}>En edición</option>
+          <option value="Editado" ${activeScript.manualStatus === "Editado" ? "selected" : ""}>Editado</option>
+          <option value="Programado" ${activeScript.manualStatus === "Programado" ? "selected" : ""}>Programado</option>
+          <option value="Publicado" ${activeScript.manualStatus === "Publicado" ? "selected" : ""}>Publicado</option>
+        </select>
+        <span class="dash-status ${statusObj.cls}">${statusObj.label}</span>
+      </div>
+      <div class="tracker-history">
+        <span class="tracker-history-title">Historial:</span>
+        ${historyTrailHTML}
+      </div>
+    </div>
+
     <div class="phase-bar">
       <h2>Paso ${currentStep.num}: ${currentStep.name}</h2>
       <div class="row">`;
@@ -850,8 +924,19 @@ if (titleEl) {
     });
 }
 
-// Modificacion de Casillas de Verificacion
+// Modificacion de Casillas de Verificacion y Selectores
 document.addEventListener("change", e => {
+    // Cambio manual de estado del guion
+    if (e.target.id === "status-override-select") {
+        const val = e.target.value.trim();
+        activeScript.manualStatus = val || null;
+        updateActiveScript({ manualStatus: activeScript.manualStatus });
+        computeScriptStatus(activeScript);
+        render();
+        showToast(val ? `Estado asignado: ${val}` : "Estado en modo automático");
+        return;
+    }
+
     const k = e.target.dataset && e.target.dataset.k;
     if (!k) return;
     activeScript.done[k] = e.target.checked;

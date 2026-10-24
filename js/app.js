@@ -300,16 +300,16 @@ function updateHeader() {
         }
     }
 
+    const cntLbl = $("cnt-lbl");
     if (cntEl) {
         if (appData.view === "dashboard") {
             const allScripts = appData.scripts || [];
-            const doneCount = allScripts.filter(s => {
-                const st = computeScriptStatus(s);
-                return st.key === "publicado";
-            }).length;
-            cntEl.textContent = `${doneCount}/${allScripts.length}`;
+            const n = allScripts.length;
+            cntEl.textContent = `${n}`;
+            if (cntLbl) cntLbl.textContent = n === 1 ? " guion" : " guiones";
         } else {
             cntEl.textContent = `${prog.percent}%`;
+            if (cntLbl) cntLbl.textContent = " listo";
         }
     }
     if (barFillEl) {
@@ -355,11 +355,25 @@ function updateBreadcrumbs() {
         if (crumbScript) crumbScript.hidden = true;
         if (sepStep) sepStep.hidden = true;
         if (crumbStep) crumbStep.hidden = true;
+    } else if (appData.view === "guion" && isNewScript) {
+        if (backBtn) backBtn.hidden = false;
+        if (sepScript) sepScript.hidden = false;
+        if (crumbScript) {
+            crumbScript.hidden = false;
+            crumbScript.textContent = "Nuevo guion";
+            crumbScript.title = "Nuevo guion";
+            crumbScript.className = "crumb-current";
+            crumbScript.removeAttribute("href");
+        }
+        if (sepStep) sepStep.hidden = true;
+        if (crumbStep) crumbStep.hidden = true;
     } else {
         if (backBtn) backBtn.hidden = false;
         if (sepScript) sepScript.hidden = false;
         if (crumbScript) {
             crumbScript.hidden = false;
+            crumbScript.className = "crumb-link";
+            crumbScript.setAttribute("href", "#");
             const scriptTitle = activeScript.title || "Guion";
             crumbScript.textContent = scriptTitle;
             crumbScript.title = scriptTitle;
@@ -458,14 +472,14 @@ function renderDashboard() {
         let pubDateBadge = "";
         if (overdue) {
             const targetStr = new Date(targetDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-            pubDateBadge = `<span class="dash-status badge-overdue">⚠️ Atrasado (${targetStr})</span>`;
+            pubDateBadge = `<span class="dash-status badge-overdue">Atrasado (${targetStr})</span>`;
         } else if (upcoming) {
             const targetStr = new Date(targetDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-            pubDateBadge = `<span class="dash-status badge-upcoming">📅 Publica ${targetStr}</span>`;
+            pubDateBadge = `<span class="dash-status badge-upcoming">Publica ${targetStr}</span>`;
         } else if (s.publishDate) {
             const parts = s.publishDate.split("-");
             const targetStr = new Date(+parts[0], +parts[1] - 1, +parts[2]).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-            pubDateBadge = `<span class="dash-status">📅 ${targetStr}</span>`;
+            pubDateBadge = `<span class="dash-status">${targetStr}</span>`;
         }
 
         const isCardMuted = status.baseStatus === "Publicado";
@@ -511,7 +525,7 @@ function renderDashboard() {
       <section class="dash-section">
         <div class="dash-section-header">
           <h3 class="dash-section-title">
-            <span>📅 Esta semana</span>
+            <span>Esta semana</span>
             <span class="dash-section-badge ${hasOverdue ? "warn" : ""}">${estaSemana.length} ${estaSemana.length === 1 ? "pieza" : "piezas"}${hasOverdue ? " (con atrasadas)" : ""}</span>
           </h3>
         </div>
@@ -526,7 +540,7 @@ function renderDashboard() {
     <section class="dash-section">
       <div class="dash-section-header">
         <h3 class="dash-section-title">
-          <span>📝 Pendientes</span>
+          <span>Pendientes</span>
           <span class="dash-section-badge">${pendientes.length} ${pendientes.length === 1 ? "pieza" : "piezas"}</span>
         </h3>
       </div>

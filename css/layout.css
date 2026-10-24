@@ -118,10 +118,26 @@ body::before {
     font-family: var(--f-body);
     font-size: 0.82rem;
     color: var(--slate-fg);
+    min-width: 0;
 }
 
 .breadcrumbs::-webkit-scrollbar {
     display: none;
+}
+
+#crumb-home {
+    flex-shrink: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+#crumb-script {
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .crumb-link {
@@ -129,9 +145,6 @@ body::before {
     text-decoration: none;
     font-weight: 500;
     transition: var(--transition);
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
@@ -144,15 +157,17 @@ body::before {
     color: rgba(255, 255, 255, 0.4);
     font-size: 0.85rem;
     user-select: none;
+    flex-shrink: 0;
 }
 
 .crumb-current {
     color: var(--tape) !important;
     font-weight: 600;
-    max-width: 200px;
+    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .board-in {
@@ -217,13 +232,15 @@ body::before {
 .board h1 {
     font-family: var(--f-display);
     font-weight: 800;
-    font-size: 1.65rem;
-    line-height: 1.05;
+    font-size: 1.45rem;
+    line-height: 1.1;
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.02em;
-    text-wrap: balance;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .board-actions {
@@ -335,5 +352,36 @@ body::before {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Adaptacion compacta para celulares */
+@media (max-width: 600px) {
+    .board-in {
+        padding-block: 4px 6px;
+        gap: 8px;
+    }
+    .brand {
+        display: none !important;
+    }
+    .ttl-meta {
+        margin-bottom: 0;
+    }
+    .board h1 {
+        font-size: 1.12rem;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .board-actions {
+        gap: 6px;
+    }
+    .board-btn {
+        padding: 4px 8px;
+        font-size: 0.72rem;
+    }
+    #crumb-script {
+        max-width: 105px;
     }
 }

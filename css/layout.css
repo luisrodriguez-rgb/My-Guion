@@ -77,10 +77,11 @@ body::before {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding-block: 7px 5px;
+    padding-top: 8px;
+    padding-bottom: 8px !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     font-size: 0.85rem;
-    min-height: 38px;
+    min-height: 40px;
 }
 
 .nav-back-btn {
@@ -124,7 +125,7 @@ body::before {
 }
 
 .crumb-link {
-    color: var(--slate-fg);
+    color: var(--slate-fg) !important;
     text-decoration: none;
     font-weight: 500;
     transition: var(--transition);
@@ -135,7 +136,7 @@ body::before {
 }
 
 .crumb-link:hover {
-    color: #ffffff;
+    color: #ffffff !important;
     text-decoration: underline;
 }
 
@@ -146,7 +147,7 @@ body::before {
 }
 
 .crumb-current {
-    color: var(--tape);
+    color: var(--tape) !important;
     font-weight: 600;
     max-width: 200px;
     overflow: hidden;
@@ -287,11 +288,9 @@ body::before {
     transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Pestañas de navegación superiores */
+/* Pestañas de navegación superiores (reemplazadas por breadcrumbs y barra de 4 pasos) */
 .tabs {
-    display: flex;
-    gap: 6px;
-    padding-block: 6px 8px;
+    display: none !important;
 }
 
 .tabs button {

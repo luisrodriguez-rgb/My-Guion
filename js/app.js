@@ -260,16 +260,44 @@ function computeScriptStatus(s) {
 function updateHeader() {
     activeScript = getActiveScript();
     const titleEl = $("vtitle");
-    if (titleEl && document.activeElement !== titleEl) {
-        titleEl.textContent = activeScript.title || doc.title;
-    }
-
-    const prog = getProgress(activeScript);
     const cntEl = $("cnt");
     const barFillEl = $("barfill");
+    const prog = getProgress(activeScript);
 
-    if (cntEl) cntEl.textContent = `${prog.percent}%`;
-    if (barFillEl) barFillEl.style.width = `${prog.percent}%`;
+    if (titleEl && document.activeElement !== titleEl) {
+        if (appData.view === "dashboard") {
+            titleEl.textContent = "Centro de Producción";
+            titleEl.contentEditable = "false";
+            titleEl.style.cursor = "default";
+        } else {
+            titleEl.textContent = activeScript.title || doc.title;
+            titleEl.contentEditable = "true";
+            titleEl.style.cursor = "text";
+        }
+    }
+
+    if (cntEl) {
+        if (appData.view === "dashboard") {
+            const allScripts = appData.scripts || [];
+            const doneCount = allScripts.filter(s => {
+                const st = computeScriptStatus(s);
+                return st.key === "publicado";
+            }).length;
+            cntEl.textContent = `${doneCount}/${allScripts.length}`;
+        } else {
+            cntEl.textContent = `${prog.percent}%`;
+        }
+    }
+    if (barFillEl) {
+        if (appData.view === "dashboard") {
+            const allScripts = appData.scripts || [];
+            const doneCount = allScripts.filter(s => computeScriptStatus(s).key === "publicado").length;
+            const pct = allScripts.length ? Math.round((doneCount / allScripts.length) * 100) : 0;
+            barFillEl.style.width = `${pct}%`;
+        } else {
+            barFillEl.style.width = `${prog.percent}%`;
+        }
+    }
 
     // Boton de Tema en cabecera
     const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
@@ -278,10 +306,10 @@ function updateHeader() {
         themeBtn.textContent = currentTheme === "dark" ? "Tema: Claro" : "Tema: Oscuro";
     }
 
-    // Boton de retorno a biblioteca
+    // Boton de retorno a biblioteca reemplazado por breadcrumbs y Volver
     const backDashBtn = $("btn-to-dashboard");
     if (backDashBtn) {
-        backDashBtn.style.display = appData.view === "dashboard" ? "none" : "inline-block";
+        backDashBtn.style.display = "none";
     }
 
     updateBreadcrumbs();

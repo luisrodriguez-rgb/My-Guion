@@ -475,6 +475,52 @@ function renderItemsHTML(s, i) {
 }
 
 /**
+ * Renderiza la seccion de canales de distribucion social con casillas, fechas y enlaces opcionales.
+ * @returns {string} HTML generado.
+ */
+function renderSocialChannelsHTML() {
+    const channels = activeScript.channels || getDefaultChannels();
+    const publishedCount = Object.values(channels).filter(c => c && c.done).length;
+
+    return `
+    <div class="card social-channels-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+        <h3>Canales de Publicación</h3>
+        <span class="step-counter-badge" style="font-size: 0.75rem;">${publishedCount} de ${SOCIAL_CHANNELS.length} publicados</span>
+      </div>
+      <p class="hint">Marca cada red donde ya esté subido el video. Guarda la fecha automáticamente y admite el link de cada publicación.</p>
+      <div class="social-channels-grid">
+        ${SOCIAL_CHANNELS.map(ch => {
+            const data = channels[ch.id] || { done: false, date: null, url: "" };
+            const isDone = !!data.done;
+            const dateStr = data.date
+                ? new Date(data.date).toLocaleDateString("es-ES", { day: "numeric", month: "short" })
+                : null;
+            return `
+          <div class="social-channel-item ${isDone ? "published" : ""}">
+            <div class="social-channel-row">
+              <label class="social-channel-check-label">
+                <input type="checkbox" data-channel-key="${ch.id}" ${isDone ? "checked" : ""}>
+                <span>${esc(ch.name)}</span>
+              </label>
+              <span class="social-channel-badge ${isDone ? "done" : "pending"}">
+                ${isDone ? `✓ ${dateStr}` : "Pendiente"}
+              </span>
+            </div>
+            <div>
+              <input type="url" class="channel-url-input" 
+                placeholder="Link opcional (${esc(ch.name)}): ${esc(ch.placeholder)}" 
+                value="${esc(data.url || "")}" 
+                data-channel-url="${ch.id}"
+                title="Enlace opcional de la publicación en ${esc(ch.name)}">
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+
+/**
  * Renderiza la vista de Plan con la barra numerada de 4 pasos y navegacion lineal.
  */
 function renderPlan() {
@@ -614,8 +660,9 @@ function renderPlan() {
         });
     }
 
-    // Paso 4: Publicar (Copy, redes, canales)
+    // Paso 4: Publicar (Canales de redes sociales + copy e instrucciones)
     if (currentStep.id === "publicar") {
+        html += renderSocialChannelsHTML();
         getSecsOf("publicar").forEach(({ s, i }) => {
             html += `
           <div class="card">
@@ -937,12 +984,60 @@ document.addEventListener("change", e => {
         return;
     }
 
+    // Casillas de publicacion por red social
+    const chKey = e.target.dataset && e.target.dataset.channelKey;
+    if (chKey) {
+        if (!activeScript.channels) activeScript.channels = getDefaultChannels();
+        const ch = activeScript.channels[chKey] || { done: false, date: null, url: "" };
+        ch.done = e.target.checked;
+        ch.date = e.target.checked ? Date.now() : null;
+        activeScript.channels[chKey] = ch;
+        updateActiveScript({ channels: activeScript.channels });
+        computeScriptStatus(activeScript);
+        render();
+        const chName = (SOCIAL_CHANNELS.find(c => c.id === chKey) || {}).name || chKey;
+        showToast(ch.done ? `Publicado en ${chName}` : `Marcado pendiente en ${chName}`);
+        return;
+    }
+
+    // Enlace opcional de publicacion
+    const chUrlKey = e.target.dataset && e.target.dataset.channelUrl;
+    if (chUrlKey) {
+        if (!activeScript.channels) activeScript.channels = getDefaultChannels();
+        const ch = activeScript.channels[chUrlKey] || { done: false, date: null, url: "" };
+        ch.url = e.target.value.trim();
+        activeScript.channels[chUrlKey] = ch;
+        updateActiveScript({ channels: activeScript.channels });
+        showToast("Enlace de publicación guardado");
+        return;
+    }
+
     const k = e.target.dataset && e.target.dataset.k;
     if (!k) return;
     activeScript.done[k] = e.target.checked;
     updateActiveScript({ done: activeScript.done });
     render();
 });
+
+// Guardar enlace de publicacion al desenfocar el campo
+document.addEventListener(
+    "blur",
+    e => {
+        const chUrlKey = e.target.dataset && e.target.dataset.channelUrl;
+        if (chUrlKey) {
+            if (!activeScript.channels) activeScript.channels = getDefaultChannels();
+            const ch = activeScript.channels[chUrlKey] || { done: false, date: null, url: "" };
+            const val = e.target.value.trim();
+            if (ch.url !== val) {
+                ch.url = val;
+                activeScript.channels[chUrlKey] = ch;
+                updateActiveScript({ channels: activeScript.channels });
+                showToast("Enlace guardado");
+            }
+        }
+    },
+    true
+);
 
 // Despliegue de Detalles de Recordatorios
 document.addEventListener(

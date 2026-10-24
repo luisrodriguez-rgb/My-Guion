@@ -1333,6 +1333,92 @@ details.remind .items {
     .dash-grid {
         grid-template-columns: 1fr;
     }
+/* Canales de publicacion por red social */
+.social-channels-card {
+    border-left: 4px solid var(--tape);
+}
+
+.social-channels-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.social-channel-item {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.social-channel-item.published {
+    border-color: var(--ok);
+    background: rgba(46, 204, 113, 0.05);
+}
+
+.social-channel-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.social-channel-check-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.social-channel-check-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--ok);
+}
+
+.social-channel-badge {
+    font-family: var(--f-mono);
+    font-size: 0.76rem;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+}
+
+.social-channel-badge.done {
+    background: rgba(46, 204, 113, 0.2);
+    color: var(--ok);
+}
+
+.social-channel-badge.pending {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--muted);
+}
+
+.channel-url-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-family: var(--f-body);
+    font-size: 0.82rem;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.channel-url-input:focus {
+    border-color: var(--tape);
+    outline: none;
 }
 
 /* Reducción de Movimiento Accesible */

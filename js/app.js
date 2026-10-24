@@ -353,30 +353,78 @@ function renderDashboard() {
     if (!appData.scripts.length) {
         grid.innerHTML = `
       <div class="dash-empty" style="grid-column: 1 / -1;">
-        <h3>No tienes ningun guion guardado todavia</h3>
+        <h3>No tienes ningún guion guardado todavía</h3>
         <p class="hint" style="margin-inline:auto">Pega el guion que te dio Claude o ChatGPT para comenzar a organizar tu rodaje.</p>
         <button class="btn primary" id="btn-create-script-empty" style="margin-top:12px">+ Crear mi primer guion</button>
       </div>`;
         return;
     }
 
-    grid.innerHTML = appData.scripts
-        .map(s => {
-            const status = computeScriptStatus(s);
-            const prog = getProgress(s);
-            const isActive = s.id === appData.activeScriptId;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const sevenDaysFromNow = today + 7 * 24 * 60 * 60 * 1000;
 
-            // Formato de fecha relativo o corto
-            const dateStr = new Date(s.updatedAt || s.createdAt).toLocaleDateString("es-ES", {
-                day: "numeric",
-                month: "short",
-            });
+    const estaSemana = [];
+    const pendientes = [];
+    const publicados = [];
 
-            return `
-        <article class="dash-card ${isActive ? "active" : ""}" data-open-script="${s.id}">
+    appData.scripts.forEach(s => {
+        const status = computeScriptStatus(s);
+        const isPub = status.baseStatus === "Publicado";
+
+        if (isPub) {
+            publicados.push({ s, status, overdue: false, upcoming: false });
+            return;
+        }
+
+        if (s.publishDate) {
+            const parts = s.publishDate.split("-");
+            if (parts.length === 3) {
+                const targetDate = new Date(+parts[0], +parts[1] - 1, +parts[2]).getTime();
+                if (targetDate < today) {
+                    estaSemana.push({ s, status, overdue: true, upcoming: false, targetDate });
+                    return;
+                } else if (targetDate <= sevenDaysFromNow) {
+                    estaSemana.push({ s, status, overdue: false, upcoming: true, targetDate });
+                    return;
+                }
+            }
+        }
+
+        pendientes.push({ s, status, overdue: false, upcoming: false });
+    });
+
+    const renderCard = ({ s, status, overdue, upcoming, targetDate }) => {
+        const prog = getProgress(s);
+        const isActive = s.id === appData.activeScriptId;
+
+        const dateStr = new Date(s.updatedAt || s.createdAt).toLocaleDateString("es-ES", {
+            day: "numeric",
+            month: "short",
+        });
+
+        let pubDateBadge = "";
+        if (overdue) {
+            const targetStr = new Date(targetDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+            pubDateBadge = `<span class="dash-status badge-overdue">⚠️ Atrasado (${targetStr})</span>`;
+        } else if (upcoming) {
+            const targetStr = new Date(targetDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+            pubDateBadge = `<span class="dash-status badge-upcoming">📅 Publica ${targetStr}</span>`;
+        } else if (s.publishDate) {
+            const parts = s.publishDate.split("-");
+            const targetStr = new Date(+parts[0], +parts[1] - 1, +parts[2]).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+            pubDateBadge = `<span class="dash-status">📅 ${targetStr}</span>`;
+        }
+
+        const isCardMuted = status.baseStatus === "Publicado";
+        const isCardOverdue = overdue;
+
+        return `
+        <article class="dash-card ${isActive ? "active" : ""} ${isCardMuted ? "card-muted" : ""} ${isCardOverdue ? "card-overdue" : ""}" data-open-script="${s.id}">
           <div class="dash-card-top">
             <div class="dash-badge-row">
               <span class="dash-status ${status.cls}">${status.label}</span>
+              ${pubDateBadge}
               <span class="dash-card-meta">${dateStr}</span>
             </div>
             <h3 class="dash-card-title">${esc(s.title || (parseScript(s.text).title))}</h3>
@@ -384,6 +432,8 @@ function renderDashboard() {
               <span>${prog.scenesDone}/${prog.scenesTotal} tomas</span>
               <span>·</span>
               <span>${prog.scenePc}% grabado</span>
+              <span>·</span>
+              <span>${prog.percent}% listo</span>
             </div>
           </div>
 
@@ -398,8 +448,60 @@ function renderDashboard() {
             <button class="btn ghost small warn" data-dash-action="delete" data-script-id="${s.id}" title="Eliminar guion">Eliminar</button>
           </div>
         </article>`;
-        })
-        .join("");
+    };
+
+    let fullHTML = "";
+
+    // 1. Seccion Esta semana
+    if (estaSemana.length) {
+        const hasOverdue = estaSemana.some(x => x.overdue);
+        fullHTML += `
+      <section class="dash-section">
+        <div class="dash-section-header">
+          <h3 class="dash-section-title">
+            <span>📅 Esta semana</span>
+            <span class="dash-section-badge ${hasOverdue ? "warn" : ""}">${estaSemana.length} ${estaSemana.length === 1 ? "pieza" : "piezas"}${hasOverdue ? " (con atrasadas)" : ""}</span>
+          </h3>
+        </div>
+        <div class="dash-grid">
+          ${estaSemana.map(renderCard).join("")}
+        </div>
+      </section>`;
+    }
+
+    // 2. Seccion Pendientes
+    fullHTML += `
+    <section class="dash-section">
+      <div class="dash-section-header">
+        <h3 class="dash-section-title">
+          <span>📝 Pendientes</span>
+          <span class="dash-section-badge">${pendientes.length} ${pendientes.length === 1 ? "pieza" : "piezas"}</span>
+        </h3>
+      </div>
+      <div class="dash-grid">
+        ${pendientes.length ? pendientes.map(renderCard).join("") : `
+          <p class="hint" style="grid-column: 1 / -1; padding: 12px 0;">No tienes piezas pendientes adicionales.</p>
+        `}
+      </div>
+    </section>`;
+
+    // 3. Seccion Publicados (plegada y en gris)
+    if (publicados.length) {
+        fullHTML += `
+      <details class="dash-foldable-section">
+        <summary class="dash-fold-summary">
+          <span>✓ Publicados (${publicados.length})</span>
+          <span class="dash-fold-hint">Plegado · Toca para ver</span>
+        </summary>
+        <div class="dash-foldable-content">
+          <div class="dash-grid">
+            ${publicados.map(renderCard).join("")}
+          </div>
+        </div>
+      </details>`;
+    }
+
+    grid.innerHTML = fullHTML;
 }
 
 /**
@@ -584,6 +686,10 @@ function renderPlan() {
           <option value="Publicado" ${activeScript.manualStatus === "Publicado" ? "selected" : ""}>Publicado</option>
         </select>
         <span class="dash-status ${statusObj.cls}">${statusObj.label}</span>
+        <div class="tracker-date-wrap">
+          <label for="script-publish-date" class="tracker-label">Publicar el:</label>
+          <input type="date" id="script-publish-date" class="tracker-date-input" value="${activeScript.publishDate || ''}" title="Fecha límite o programada para publicar este video">
+        </div>
       </div>
       <div class="tracker-history">
         <span class="tracker-history-title">Historial:</span>
@@ -981,6 +1087,16 @@ document.addEventListener("change", e => {
         computeScriptStatus(activeScript);
         render();
         showToast(val ? `Estado asignado: ${val}` : "Estado en modo automático");
+        return;
+    }
+
+    // Fecha de publicacion del guion
+    if (e.target.id === "script-publish-date") {
+        activeScript.publishDate = e.target.value;
+        updateActiveScript({ publishDate: activeScript.publishDate });
+        computeScriptStatus(activeScript);
+        render();
+        showToast(activeScript.publishDate ? `Fecha programada: ${activeScript.publishDate}` : "Fecha de publicación eliminada");
         return;
     }
 

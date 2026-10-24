@@ -138,12 +138,18 @@ function reconcileDoneState(oldText, oldDone, newText) {
 
     const doneSignatures = new Set();
     const doneTitles = new Set();
+    const doneSceneIndexes = new Set();
 
+    let oldSceneIdx = 0;
     oldParsed.secs.forEach((sec, i) => {
-        if (sec.kind === "scene" && oldDone["s" + i]) {
-            const sig = [clean(sec.title), clean(sec.action), (sec.says || []).map(x => clean(x.v)).join(" ")].join("||");
-            doneSignatures.add(sig);
-            if (sec.title) doneTitles.add(clean(sec.title));
+        if (sec.kind === "scene") {
+            if (oldDone["s" + i]) {
+                const sig = [clean(sec.title), clean(sec.action), (sec.says || []).map(x => clean(x.v)).join(" ")].join("||");
+                doneSignatures.add(sig);
+                if (sec.title) doneTitles.add(clean(sec.title));
+                doneSceneIndexes.add(oldSceneIdx);
+            }
+            oldSceneIdx++;
         }
     });
 
@@ -158,13 +164,21 @@ function reconcileDoneState(oldText, oldDone, newText) {
         }
     });
 
+    let newSceneIdx = 0;
+    const sameSceneCount = oldSceneIdx > 0 && oldSceneIdx === newParsed.secs.filter(s => s.kind === "scene").length;
+
     newParsed.secs.forEach((sec, i) => {
         if (sec.kind === "scene") {
             const sig = [clean(sec.title), clean(sec.action), (sec.says || []).map(x => clean(x.v)).join(" ")].join("||");
             const cleanTitle = clean(sec.title);
-            if (doneSignatures.has(sig) || (cleanTitle && doneTitles.has(cleanTitle))) {
+            if (
+                doneSignatures.has(sig) ||
+                (cleanTitle && doneTitles.has(cleanTitle)) ||
+                (sameSceneCount && doneSceneIndexes.has(newSceneIdx))
+            ) {
                 newDone["s" + i] = true;
             }
+            newSceneIdx++;
         } else if (sec.kind === "sec") {
             sec.lines.forEach((l, k) => {
                 if (l.t === "item" && doneItems.has(clean(l.v))) {
@@ -728,6 +742,7 @@ function renderPlan() {
           <label for="script-publish-date" class="tracker-label">Publicar el:</label>
           <input type="date" id="script-publish-date" class="tracker-date-input" value="${activeScript.publishDate || ''}" title="Fecha límite o programada para publicar este video">
         </div>
+        <button class="btn small ghost btn-edit-script-text" id="btn-edit-script-text" title="Editar el texto de este guion">Editar texto</button>
       </div>
       <div class="tracker-history">
         <span class="tracker-history-title">Historial:</span>
@@ -737,10 +752,11 @@ function renderPlan() {
 
     <div class="phase-bar">
       <h2>Paso ${currentStep.num}: ${currentStep.name}</h2>
-      <div class="row">`;
+      <div class="row">
+        <button class="btn small ghost btn-edit-script-text" title="Editar el texto de este guion">Editar texto</button>`;
 
     if (currentStep.id === "grabar" && getScenes().length) {
-        html += `<button class="btn primary small" data-v="grabar">🎬 Grabar escena por escena</button>`;
+        html += `<button class="btn primary small" data-v="grabar">Grabar escena por escena</button>`;
     }
     html += `<button class="btn small ghost" id="share">Copiar checklist</button>`;
     html += `</div></div><div class="list">`;
@@ -1023,6 +1039,15 @@ function render() {
     if (appData.view === "dashboard") renderDashboard();
     if (appData.view === "plan") renderPlan();
     if (appData.view === "grabar") renderRec();
+    if (appData.view === "guion") {
+        const vGuion = $("v-guion");
+        if (vGuion) {
+            const lbl = vGuion.querySelector(".lbl");
+            if (lbl) lbl.textContent = isNewScript ? "Nuevo guion para estructurar" : `Editar guion: ${activeScript.title || "Sin título"}`;
+            const goBtn = $("go");
+            if (goBtn) goBtn.textContent = isNewScript ? "Organizar y guardar en biblioteca" : "Guardar cambios y actualizar checklist";
+        }
+    }
 
     manageWakeLock(appData.view === "grabar");
 }
@@ -1241,6 +1266,19 @@ document.addEventListener("click", e => {
         } else if (appData.view === "plan") {
             appData.view = "dashboard";
         }
+        saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Boton "Editar texto" dentro del guion
+    const editScriptBtn = e.target.closest("#btn-edit-script-text, .btn-edit-script-text");
+    if (editScriptBtn) {
+        isNewScript = false;
+        appData.view = "guion";
+        $("src").value = activeScript.text || "";
+        $("script-title-input").value = activeScript.title || "";
         saveAppData();
         render();
         window.scrollTo(0, 0);

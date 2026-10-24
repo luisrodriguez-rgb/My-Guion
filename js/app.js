@@ -1527,6 +1527,11 @@ document.addEventListener("click", e => {
             $("src").focus();
             break;
         }
+        case "btn-copy-claude-prompt": {
+            copyToClipboard(CLAUDE_PROMPT_TEMPLATE, t);
+            showToast("Prompt para Claude copiado al portapapeles");
+            break;
+        }
         case "share": {
             copyToClipboard(generateChecklistText(activeScript.phase));
             break;

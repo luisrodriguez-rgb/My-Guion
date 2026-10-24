@@ -105,7 +105,10 @@
 
         <!-- Vista 3: Pegado y Procesamiento de Nuevos Guiones -->
         <section id="v-guion" class="view" role="tabpanel" aria-labelledby="t-guion" hidden>
-            <div class="lbl">Nuevo guion para estructurar</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+                <div class="lbl" style="margin-bottom: 0;">Nuevo guion para estructurar</div>
+                <button class="btn small ghost" id="btn-copy-claude-prompt" title="Copiar plantilla de prompt optimizada para Claude o ChatGPT">Copiar prompt para Claude</button>
+            </div>
             <p class="hint">
                 Pega el guion completo tal como te lo dio Claude o ChatGPT (con tablas, vinetas y textos).
                 My-Guion identifica la tabla de tomas, separa los dialogos por personajes (P1, P2) y distribuye las tareas en
@@ -144,10 +147,10 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
     <!-- Scripts de la Aplicacion en Orden de Dependencia -->
-    <script src="js/constants.js?v=2.3"></script>
-    <script src="js/parser.js?v=2.3"></script>
-    <script src="js/storage.js?v=2.3"></script>
-    <script src="js/teleprompter.js?v=2.3"></script>
-    <script src="js/app.js?v=2.3"></script>
+    <script src="js/constants.js?v=2.4"></script>
+    <script src="js/parser.js?v=2.4"></script>
+    <script src="js/storage.js?v=2.4"></script>
+    <script src="js/teleprompter.js?v=2.4"></script>
+    <script src="js/app.js?v=2.4"></script>
 </body>
 </html>

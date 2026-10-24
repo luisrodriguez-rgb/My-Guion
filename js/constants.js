@@ -129,9 +129,38 @@ Así, el video de regreso se convierte en la base de la campaña de inscripcione
 /** Clave de persistencia en localStorage */
 const STORAGE_KEY = "myguion.v4";
 
+/** Plantilla de prompt recomendada para generar guiones compatibles con Claude / ChatGPT */
+const CLAUDE_PROMPT_TEMPLATE = `Escribe el guion en este formato exacto, sin texto antes ni después:
+
+# [Título del video]
+
+## Escenas
+| Tiempo | Plano | Qué pasa | Texto en pantalla |
+
+## Preparar
+- [ ] tarea
+
+## Grabar
+- [ ] tarea
+
+## Editar
+- [ ] tarea
+
+## Publicar
+- [ ] tarea
+Caption Instagram: "..."
+Caption TikTok: "..."
+
+## Notas
+(explicaciones, por qué, métricas: sin casillas)`;
+
 /** Definición de fases del rodaje con expresiones regulares de emparejamiento */
 const PHASES = [
-    { id: "notas", name: "Notas", re: null },
+    {
+        id: "notas",
+        name: "Notas",
+        re: /\bnotas?\b|explicaci|m[eé]tricas?|c[oó]mo sabr|por qu[eé]|contexto|resumen|an[aá]lisis|informaci[oó]n|referencia/i,
+    },
     {
         id: "antes",
         name: "Preparar",
@@ -140,7 +169,7 @@ const PHASES = [
     {
         id: "grabar",
         name: "Grabar",
-        re: /durante|grabaci|rodaje|b-?roll|tomas? extra|al grabar|escenas?\b/i,
+        re: /grabar|durante|grabaci|rodaje|b-?roll|tomas? extra|al grabar|escenas?\b/i,
     },
     {
         id: "editar",
@@ -150,7 +179,7 @@ const PHASES = [
     {
         id: "publicar",
         name: "Publicar",
-        re: /subir|publica|instagram|facebook|tiktok|whatsapp|caption|perfil|redes|youtube|despu[eé]s de grabar|difusi|pauta|estrategia|m[eé]tricas|audiencia|anuncios|presupuesto|segmentaci|carrusel|historias/i,
+        re: /subir|publica|instagram|facebook|tiktok|whatsapp|caption|perfil|redes|youtube|despu[eé]s de grabar|difusi|pauta|estrategia|audiencia|anuncios|presupuesto|segmentaci|historias/i,
     },
 ];
 

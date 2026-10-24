@@ -14,6 +14,7 @@ function clean(s) {
         .replace(/\*/g, "") // Elimina asteriscos sueltos o de cursiva markdown
         .replace(/^\s*[_]+|[_]+\s*$/g, "")
         .replace(/^\[\s?[xX ]?\]\s*/, "") // Elimina [ ] o [x] residuales de markdown
+        .replace(/^\[(.*)\]$/, "$1") // Elimina corchetes de plantilla ej: [Título del video]
         .replace(/\s+/g, " ")
         .trim();
 }
@@ -25,6 +26,9 @@ function clean(s) {
  * @returns {string} Identificador de la fase.
  */
 function phaseOf(title, currentPhase) {
+    if (/^(mi recomendaci[oó]n|aqu[ií] (?:tienes|est[aá]|te dejo)|te la audito|hola|bueno|consejo|idea|an[aá]lisis|contexto|intro)/i.test(title.trim())) {
+        return "notas";
+    }
     for (const p of PHASES) {
         if (p.re && p.re.test(title)) return p.id;
     }
@@ -142,25 +146,79 @@ function findScriptTitle(lines) {
             s.trim()
         );
 
-    // 1. Prioridad: Buscar un encabezado H1 o H2 con "guion", "video", "spot", "reel"
+    const isNonTitle = s => {
+        const t = s.trim();
+        if (!t) return true;
+        if (/^(\||-|\*|\d+[.)]|>|\[|\/\/)/.test(t)) return true;
+        if (/^(preparar|grabar|editar|publicar|escenas|notas|checklist|distribuci[oó]n|caption|copy|duraci[oó]n)/i.test(t)) return true;
+        if (isAdvice(t)) return true;
+        return false;
+    };
+
+    const isGenericHeading = h =>
+        /^(escenas|preparar|grabar|editar|publicar|notas|checklist|d[oó]nde y c[oó]mo|sobre la pauta|c[oó]mo sabr[aá]n|distribuci[oó]n|caption)/i.test(h);
+
+    // 1. Prioridad: Encabezado H1 o H2 con palabras clave de pieza audiovisual
     for (const line of lines) {
         const m = line.match(/^\s*#{1,3}\s+(.+)$/);
         if (m) {
             const h = clean(m[1]);
-            if (!isAdvice(h) && /gui[oó]n|video|spot|reel|tiktok|cortometraje/i.test(h)) {
+            if (!isAdvice(h) && /gui[oó]n|video|spot|reel|tiktok|cortometraje|tutorial|pregunta|campa[ñn]a/i.test(h)) {
                 return h;
             }
         }
     }
 
-    // 2. Segunda pasada: Cualquier H1 o H2 que no sea un consejo/introduccion
+    // 2. Prefijo explícito de título: "Título: ...", "Guion: ...", "Video: ..." (con o sin markdown)
+    for (let i = 0; i < Math.min(lines.length, 15); i++) {
+        const line = lines[i];
+        const m = line.match(/^\s*(?:#{1,3}\s+|\*\*)?(?:t[ií]tulo(?: del video)?|gui[oó]n|video|nombre):\s*(.+?)(?:\*\*)?$/i);
+        if (m) {
+            const h = clean(m[1]);
+            if (h && !isAdvice(h) && h.length >= 3) {
+                return h;
+            }
+        }
+    }
+
+    // 3. Encabezado markdown H1 o H2 que no sea consejo ni sección genérica de trabajo
     for (const line of lines) {
         const m = line.match(/^\s*#{1,3}\s+(.+)$/);
         if (m) {
             const h = clean(m[1]);
-            if (!isAdvice(h) && !/checklist|d[oó]nde y c[oó]mo/i.test(h)) {
+            if (!isAdvice(h) && !isGenericHeading(h)) {
                 return h;
             }
+        }
+    }
+
+    // 4. Línea en negrita solitaria al inicio (primeras 10 líneas)
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+        const m = lines[i].match(/^\s*\*\*([^*]{3,120})\*\*\s*$/);
+        if (m) {
+            const h = clean(m[1]);
+            if (!isNonTitle(h) && !isAdvice(h) && !isGenericHeading(h)) {
+                return h;
+            }
+        }
+    }
+
+    // 5. Línea de texto plano relevante en las primeras 10 líneas que contenga "video", "tutorial", "guion", etc. (incluso con dos puntos)
+    for (let i = 0; i < Math.min(lines.length, 10); i++) {
+        const raw = lines[i];
+        const t = clean(raw);
+        if (t && t.length >= 5 && t.length <= 120 && !isNonTitle(t)) {
+            if (/gui[oó]n|video|spot|reel|tiktok|cortometraje|tutorial|pregunta|campa[ñn]a/i.test(t)) {
+                return t;
+            }
+        }
+    }
+
+    // 6. Primera línea no vacía si parece un título limpio
+    for (let i = 0; i < Math.min(lines.length, 5); i++) {
+        const t = clean(lines[i]);
+        if (t && t.length >= 4 && t.length <= 90 && !isNonTitle(t) && !isGenericHeading(t)) {
+            return t;
         }
     }
 
@@ -180,6 +238,7 @@ function parseScript(text) {
 
     const L = text.replace(/\r/g, "").split("\n");
     const detectedTitle = findScriptTitle(L);
+    const cleanDetectedTitle = clean(detectedTitle).toLowerCase();
     let secs = [];
     let cur = null;
     let phase = null;
@@ -259,6 +318,11 @@ function parseScript(text) {
             continue;
         }
 
+        // Si es la linea que origino el titulo principal antes de entrar a secciones, se omite para evitar notas fantasma
+        if (!cur && clean(t).toLowerCase() === cleanDetectedTitle) {
+            continue;
+        }
+
         if (!raw.trim()) {
             if (copy) flushCopy();
             continue;
@@ -305,7 +369,8 @@ function parseScript(text) {
         if (md || subHead || (isPlainHeading(raw, t) && !(copy && /^#/.test(t)))) {
             const h = clean(md ? md[1] : t).replace(/:\s*$/, "");
             endCopy();
-            open(h, phaseOf(h, phase));
+            const nextPhase = (!md && phase === "notas") ? "notas" : phaseOf(h, phase);
+            open(h, nextPhase);
             continue;
         }
 
@@ -370,8 +435,12 @@ function parseScript(text) {
             const v = clean(bulletMatch[1]);
             if (!v || v === "-") continue;
 
-            // En todas las fases de trabajo (antes, grabar, editar, publicar), las viñetas son tareas interactivas
-            cur.lines.push({ t: "item", v });
+            // En la fase de notas/explicaciones, las viñetas son información de referencia a menos que tengan [ ] explícito
+            if (phase === "notas" && !hasExplicitCheckbox) {
+                cur.lines.push({ t: "note", v: "• " + v });
+            } else {
+                cur.lines.push({ t: "item", v });
+            }
             continue;
         }
 

@@ -26,6 +26,14 @@ Cuando creas guiones para videos de redes sociales (TikTok, Reels, YouTube Short
 
 ## Caracteristicas Principales
 
+### 0. Semana de Produccion (Inicio)
+* **Cargar semana:** Pega el kit "Semana N · Kit de produccion" (desde Word o en markdown desde Claude; el menu trae el prompt con el formato). My-Guion crea una pieza por dia con su hora, formato, responsable y fechas limite de material crudo y edicion.
+* **Inicio por semana:** Primero lo de hoy (la grabacion pendiente, lo que se publica hoy con sus historias y las fechas limite), luego los 7 dias con el estado de cada pieza, los bloques de grabacion y los pendientes por confirmar.
+* **Sesion de grabacion:** Cada bloque del "Plan de grabacion" encadena en el teleprompter las frases de varias piezas en el orden recomendado, solo las de las personas del bloque (gemelos o colaboradora) y separando las grabaciones de pantalla.
+* **Claqueta y tomas:** Cada frase muestra su nombre de archivo (por ejemplo `S1_JUE_G_F1`) y cuenta las tomas pedidas ("Toma 2 de 3"). `Espacio` registra una toma; al completar las tomas pasa a la siguiente frase.
+* **Guia de la semana:** Reglas de grabacion con casillas, guia de edicion y mensajes para el equipo listos para copiar.
+* **Actualizar sin perder avance:** Volver a pegar el kit de la misma semana actualiza las piezas y conserva tomas y casillas ya marcadas.
+
 ### 1. Planificacion y Fases del Rodaje
 * **Parser Inteligente de Guiones:**
   - Discrimina entre tablas de tomas de grabacion y tablas accesorias (como calendarios de historias o listas secundarias).
@@ -95,12 +103,15 @@ My-Guion/
 │   ├── variables.css       # Tokens de diseno, paleta cinematografica y temas (Dark/Light)
 │   ├── layout.css          # Contenedores, area segura movil, claqueta y pestanas
 │   ├── components.css      # Tarjetas, teleprompter, botones, shot list y badges
+│   ├── home.css            # Inicio por semana, menu, sesion de grabacion y claqueta
 │   └── style.css           # Hoja maestra modular
 ├── js/
 │   ├── constants.js        # Guion de ejemplo, fases de produccion y expresiones regulares
 │   ├── parser.js           # Motor de analisis sintactico de guiones y tablas
+│   ├── kit.js              # Lector del kit de produccion semanal (dias, bloques, fechas, pendientes)
 │   ├── storage.js          # Persistencia en localStorage, exportacion y backups
 │   ├── teleprompter.js     # Screen WakeLock, pantalla completa, zoom y respuesta haptica
+│   ├── week.js             # Semanas, sesiones de grabacion y pantalla de Inicio
 │   └── app.js              # Controlador principal, renderizado DOM y gestion de eventos
 ├── .gitignore              # Exclusion de archivos del sistema y temporales
 └── README.md               # Documentacion integral y hoja de ruta

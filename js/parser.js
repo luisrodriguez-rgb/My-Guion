@@ -26,7 +26,7 @@ function clean(s) {
  * @returns {string} Identificador de la fase.
  */
 function phaseOf(title, currentPhase) {
-    if (/^(mi recomendaci[oó]n|aqu[ií] (?:tienes|est[aá]|te dejo)|te la audito|hola|bueno|consejo|idea|an[aá]lisis|contexto|intro)/i.test(title.trim())) {
+    if (/^(mi recomendaci[oó]n|aqu[ií] (?:tienes|est[aá]|te dejo)|te la audito|hola|bueno|consejo|idea|an[aá]lisis|contexto|intro|pieza \d)/i.test(title.trim())) {
         return "notas";
     }
     for (const p of PHASES) {
@@ -135,6 +135,55 @@ function rowToScene(hdr, c) {
 }
 
 /**
+ * Convierte una fila de la "Lista de tomas" (Archivo | Quien | Frase | Tomas,
+ * o # | Toma | Como grabarla) en una frase a grabar con su claqueta.
+ * @param {string[]} hdr - Encabezados de la tabla.
+ * @param {string[]} c - Celdas de la fila.
+ * @returns {object} Escena con code, who y reps (tomas pedidas).
+ */
+function rowToShot(hdr, c) {
+    const find = re => hdr.findIndex(h => re.test(h));
+    const iCode = find(/archivo|^#$|c[oó]digo/i);
+    const iWho = find(/qui[eé]n/i);
+    const iReps = find(/^tomas$/i);
+    const iPlano = find(/plano/i);
+    const iHow = find(/c[oó]mo|notas?/i);
+    const iLine = hdr.findIndex((h, k) => k !== iReps && /frase|qu[eé] graba|^toma$|di[aá]logo|texto/i.test(h));
+
+    const cell = k => (k >= 0 && c[k] && c[k] !== "—" ? c[k] : "");
+    const who = cell(iWho);
+    const how = cell(iHow);
+    const line = cell(iLine);
+    const q = parseQuotes(line, who);
+    const repsTxt = cell(iReps) || (how.match(/(\d+)\s*tomas/i) || [])[1] || "";
+
+    const sc = {
+        kind: "scene",
+        time: "",
+        title: "",
+        action: [q.says.length ? q.rest : "", how].filter(Boolean).join(" "),
+        says: q.says,
+        screen: "",
+        extra: [],
+        code: cell(iCode),
+        who,
+        reps: Math.max(1, parseInt(repsTxt, 10) || 1),
+    };
+    const frase = (sc.code.match(/_F(\d+)$/i) || [])[1];
+    if (!q.says.length) {
+        sc.title = line || sc.code;
+        return sc;
+    }
+    // Titulo corto: quien y plano; si no hay, la accion ("Voz en off") o la primera frase de "Como grabarla"
+    const [firstHowRaw = "", ...restHow] = how.split(/(?<=\.)\s+/);
+    const firstHow = firstHowRaw.replace(/\.$/, "");
+    sc.title = [who, cell(iPlano) || (frase ? `frase ${frase}` : "")].filter(Boolean).join(" · ") || q.rest || firstHow || sc.code;
+    if (sc.title === q.rest) sc.action = how;
+    else if (sc.title === firstHow) sc.action = restHow.join(" ");
+    return sc;
+}
+
+/**
  * Busca de forma inteligente el titulo principal del guion, descartando frases introductorias
  * o consejos de la IA ("Mi recomendacion", "Te dejo el guion", "Aqui tienes...", etc.).
  * @param {string[]} lines - Lineas del texto.
@@ -157,6 +206,11 @@ function findScriptTitle(lines) {
 
     const isGenericHeading = h =>
         /^(escenas|preparar|grabar|editar|publicar|notas|checklist|d[oó]nde y c[oó]mo|sobre la pauta|c[oó]mo sabr[aá]n|distribuci[oó]n|caption)/i.test(h);
+
+    // 0. Un H1 ("# Titulo") como primera linea es el titulo, sin importar las palabras clave
+    const firstLine = lines.find(l => l.trim());
+    const h1 = firstLine && firstLine.match(/^\s*#\s+(.+)$/);
+    if (h1 && !isAdvice(clean(h1[1]))) return clean(h1[1]);
 
     // 1. Prioridad: Encabezado H1 o H2 con palabras clave de pieza audiovisual
     for (const line of lines) {
@@ -275,9 +329,36 @@ function parseScript(text) {
         return "";
     };
 
+    // Si el guion trae "Lista de tomas" con tabla, esa tabla manda en el rodaje
+    // y la tabla del guion queda como referencia de edicion.
+    const isShotListHead = l => /^\s*#{1,6}\s*lista de tomas\s*:?\s*$/i.test(l);
+    const hasShotList = L.some((l, i) => isShotListHead(l) && /^\s*\|.*\|\s*$|\t.*\t/.test(nextNonBlank(i)));
+
     for (let i = 0; i < L.length; i++) {
         const raw = L[i];
         const t = clean(raw);
+
+        // Bloque literal entre ``` (briefs, captions, mensajes): se copia completo
+        const fence = raw.match(/^\s*```\s*(.*)$/);
+        if (fence) {
+            endCopy();
+            const body = [];
+            i++;
+            while (i < L.length && !/^\s*```\s*$/.test(L[i])) {
+                body.push(L[i]);
+                i++;
+            }
+            const content = body.join("\n").replace(/^\n+|\n+$/g, "");
+            if (content.trim()) {
+                ensure();
+                cur.lines.push({
+                    t: "copy",
+                    label: (clean(fence[1]) || cur.title || "Texto").replace(/\s*\(copiar y pegar[^)]*\)/i, ""),
+                    paras: [content],
+                });
+            }
+            continue;
+        }
 
         // Deteccion de tablas (tabuladores o tuberias markdown | )
         const isTab = (raw.match(/\t/g) || []).length >= 2;
@@ -304,7 +385,11 @@ function parseScript(text) {
             const body = rows.filter(r => !/^\s*\|?[\s:|-]+\|?\s*$/.test(r));
             if (body.length > 0) {
                 const hdr = cells(body[0]);
-                if (isSceneTableHeaders(hdr)) {
+                const inShotList = cur && cur.kind === "sec" && /^lista de tomas/i.test(cur.title);
+                if (hasShotList && inShotList) {
+                    body.slice(1).forEach(r => secs.push(rowToShot(hdr, cells(r))));
+                    cur = null;
+                } else if (!hasShotList && isSceneTableHeaders(hdr)) {
                     // Tabla de tomas / escenas para el teleprompter
                     body.slice(1).forEach(r => secs.push(rowToScene(hdr, cells(r))));
                     cur = null;

@@ -16,7 +16,7 @@
         href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 
     <!-- Hojas de Estilo Modulares -->
-    <link rel="stylesheet" href="css/style.css?v=2.3">
+    <link rel="stylesheet" href="css/style.css?v=2.5">
 </head>
 <body>
     <!-- Encabezado de Claqueta Cinematografica -->
@@ -37,15 +37,30 @@
         <div class="board-in wrap">
             <div class="ttl">
                 <div class="ttl-meta">
-                    <button class="board-nav-btn" id="btn-to-dashboard" title="Ir a la biblioteca de guiones" style="display: none;">Biblioteca</button>
                     <div class="brand">My-Guion · Produccion</div>
                 </div>
                 <h1 id="vtitle" contenteditable="true" spellcheck="false" title="Haz clic para editar el nombre del video">Guion</h1>
             </div>
             <div class="board-actions">
-                <button class="board-btn" id="theme-toggle" title="Cambiar tema">Tema</button>
                 <div class="count" aria-live="polite">
                     <b id="cnt">0%</b><span id="cnt-lbl"> listo</span>
+                </div>
+                <div class="menu-wrap">
+                    <button class="board-btn menu-btn" id="btn-menu" aria-haspopup="true" aria-expanded="false" aria-controls="app-menu" title="Menú">
+                        <span aria-hidden="true">⋯</span><span class="sr-only">Menú</span>
+                    </button>
+                    <div class="app-menu" id="app-menu" role="menu" hidden>
+                        <button role="menuitem" data-go-import>Cargar o actualizar semana</button>
+                        <button role="menuitem" data-go-guide data-needs-week>Guía de la semana</button>
+                        <button role="menuitem" id="btn-create-script">Nuevo guion suelto</button>
+                        <hr>
+                        <button role="menuitem" id="btn-export-backup">Descargar respaldo</button>
+                        <button role="menuitem" id="btn-copy-backup">Copiar respaldo</button>
+                        <button role="menuitem" id="btn-import-trigger">Importar respaldo</button>
+                        <button role="menuitem" id="theme-toggle">Cambiar tema</button>
+                        <hr data-needs-week>
+                        <button role="menuitem" class="danger" id="btn-delete-week" data-needs-week>Eliminar esta semana</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -62,22 +77,31 @@
 
     <!-- Contenedor Principal de Vistas -->
     <main class="wrap">
-        <!-- Vista 0: Dashboard / Biblioteca de Guiones -->
+        <!-- Vista 0: Inicio (semana de produccion) -->
         <section id="v-dashboard" class="view" role="tabpanel" aria-labelledby="t-dash" hidden>
-            <div class="dash-head">
+            <input type="file" id="file-import" accept=".json" style="display: none;">
+            <div id="dash-grid" class="home"></div>
+        </section>
+
+        <!-- Vista: Cargar el kit de produccion semanal -->
+        <section id="v-semana" class="view" hidden>
+            <div class="import-head">
                 <div>
-                    <h2>Mis Guiones</h2>
-                    <p>Biblioteca de proyectos y sesiones de rodaje.</p>
+                    <h2>Cargar semana</h2>
+                    <p class="hint">Pega el kit completo ("Semana N · Kit de producción") desde Word o desde Claude. Si la semana ya existe, se actualiza y se conservan las tomas y casillas marcadas.</p>
                 </div>
-                <div class="dash-actions-top">
-                    <button class="btn primary" id="btn-create-script">+ Nuevo guion</button>
-                    <button class="btn small" id="btn-export-backup" title="Descargar respaldo de todos los guiones">Exportar respaldo</button>
-                    <button class="btn small ghost" id="btn-copy-backup" title="Copiar respaldo JSON al portapapeles">Copiar respaldo</button>
-                    <button class="btn small ghost" id="btn-import-trigger" title="Cargar respaldo JSON">Importar</button>
-                    <input type="file" id="file-import" accept=".json" style="display: none;">
-                </div>
+                <button class="btn small ghost" id="btn-copy-kit-prompt" title="Copiar el formato que lee My-Guion para pedírselo a Claude">Copiar prompt para Claude</button>
             </div>
-            <div id="dash-grid" class="dash-sections-container"></div>
+            <textarea id="kit-src" spellcheck="false" placeholder="Semana 1 · Kit de producción (26 oct – 1 nov)&#10;…" aria-label="Kit de producción semanal"></textarea>
+            <div class="row" style="margin-top: 14px">
+                <button class="btn primary" id="kit-go">Cargar semana</button>
+                <button class="btn ghost" id="kit-clear">Borrar texto</button>
+            </div>
+        </section>
+
+        <!-- Vista: Guia de la semana (reglas, edicion, mensajes) -->
+        <section id="v-guia" class="view" hidden>
+            <div id="guia"></div>
         </section>
 
         <!-- Vista 1: Planificacion y Fases -->
@@ -147,10 +171,12 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
     <!-- Scripts de la Aplicacion en Orden de Dependencia -->
-    <script src="js/constants.js?v=2.4"></script>
-    <script src="js/parser.js?v=2.4"></script>
-    <script src="js/storage.js?v=2.4"></script>
-    <script src="js/teleprompter.js?v=2.4"></script>
-    <script src="js/app.js?v=2.4"></script>
+    <script src="js/constants.js?v=2.5"></script>
+    <script src="js/parser.js?v=2.5"></script>
+    <script src="js/kit.js?v=2.5"></script>
+    <script src="js/storage.js?v=2.5"></script>
+    <script src="js/teleprompter.js?v=2.5"></script>
+    <script src="js/week.js?v=2.5"></script>
+    <script src="js/app.js?v=2.5"></script>
 </body>
 </html>

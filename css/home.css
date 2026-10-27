@@ -820,3 +820,26 @@ body[data-view="dashboard"] .wrap {
         display: none;
     }
 }
+
+/* ==========================================================================
+   Iconos, avatares, graficos y checklist de hoy
+   ========================================================================== */
+.ico {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    vertical-align: -3px;
+}
+
+.lbl .ico,
+.home-section-h h3 .ico {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    vertical-align: -3px;
+}
+
+.btn .ico {
+    width: 15px;
+    height: 15px;
+}

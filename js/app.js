@@ -1322,6 +1322,10 @@ document.addEventListener("click", e => {
         $("kit-src").focus();
         return;
     }
+    if (e.target.closest("[data-import-backup]")) {
+        $("file-import").click();
+        return;
+    }
     if (e.target.closest("[data-go-guide]")) {
         goView("guia");
         return;

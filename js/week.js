@@ -447,8 +447,10 @@ function renderWeekEmptyHTML() {
       <p class="hint">Pega el documento "Semana N · Kit de producción" tal como sale de Claude o de Word. My-Guion arma los días, los bloques de grabación con sus frases, las fechas límite y los pendientes.</p>
       <div class="row">
         <button class="btn primary" data-go-import>Cargar semana</button>
+        <button class="btn ghost" data-import-backup>Importar respaldo</button>
         <button class="btn ghost" id="btn-create-script-empty">Nuevo guion suelto</button>
       </div>
+      <p class="week-empty-note">Las semanas se guardan solo en este navegador. Si la cargaste en otro navegador o en el celular, vuelve a pegar el kit aquí, o descarga el respaldo allá (menú ⋯) e impórtalo aquí.</p>
     </div>`;
 }
 

@@ -209,6 +209,9 @@ const pendingKey = p => "p:" + clean(p.text).toLowerCase().slice(0, 60);
 // Pantalla de Inicio
 // -----------------------------------------------------------------------------
 
+/** Estado de la interfaz del Inicio que no se guarda (formularios abiertos). */
+const homeUI = { teamForm: null };
+
 /** Tarjeta de la proxima sesion de grabacion. */
 function renderNextSessionHTML(week, today) {
     const sessions = (week.sessions || [])
@@ -462,7 +465,7 @@ function renderHome() {
     if (!root) return;
     const week = getActiveWeek();
     if (!week) {
-        root.innerHTML = renderWeekEmptyHTML() + renderLooseScriptsHTML();
+        root.innerHTML = renderWeekEmptyHTML() + renderTeamHTML(null) + renderLooseScriptsHTML();
         return;
     }
 
@@ -496,6 +499,7 @@ function renderHome() {
     ${renderWeekStripHTML(week, today)}
     ${renderSessionsHTML(week, today)}
     ${renderPendingHTML(week, today)}
+    ${renderTeamHTML(week)}
     ${renderLooseScriptsHTML()}`;
 }
 

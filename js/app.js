@@ -579,6 +579,7 @@ function renderPlan() {
         </div>
         <button class="btn small ghost btn-edit-script-text" id="btn-edit-script-text" title="Editar el texto de este guion">Editar texto</button>
       </div>
+      ${renderAssignHTML(activeScript)}
       <div class="tracker-history">
         <span class="tracker-history-title">Historial:</span>
         ${historyTrailHTML}
@@ -1141,6 +1142,13 @@ document.addEventListener("change", e => {
         return;
     }
 
+    if (e.target.id === "piece-note") {
+        activeScript.note = e.target.value.trim();
+        updateActiveScript({ note: activeScript.note });
+        showToast("Nota guardada");
+        return;
+    }
+
     const sk = e.target.dataset && e.target.dataset.sk;
     if (sk) {
         const [sid, key] = [sk.slice(0, sk.indexOf("|")), sk.slice(sk.indexOf("|") + 1)];
@@ -1328,6 +1336,51 @@ document.addEventListener("click", e => {
     }
     if (e.target.closest("[data-go-guide]")) {
         goView("guia");
+        return;
+    }
+
+    // Equipo
+    if (e.target.closest("[data-team-add]")) {
+        homeUI.teamForm = "new";
+        render();
+        const input = document.querySelector("#team-form [name=name]");
+        if (input) input.focus();
+        return;
+    }
+    const teamEdit = e.target.closest("[data-team-edit]");
+    if (teamEdit) {
+        homeUI.teamForm = teamEdit.dataset.teamEdit;
+        render();
+        return;
+    }
+    if (e.target.closest("[data-team-cancel]")) {
+        homeUI.teamForm = null;
+        render();
+        return;
+    }
+    const teamDel = e.target.closest("[data-team-del]");
+    if (teamDel) {
+        const member = getTeam().find(m => m.id === teamDel.dataset.teamDel);
+        if (!member) return;
+        showConfirmModal({
+            title: "Quitar del equipo",
+            message: `¿Quitar a ${member.name}? Sus piezas quedan sin asignar.`,
+            confirmText: "Quitar",
+            confirmClass: "warn primary",
+        }).then(ok => {
+            if (!ok) return;
+            deleteTeamMember(member.id);
+            render();
+        });
+        return;
+    }
+    const assignBtn = e.target.closest("[data-assign]");
+    if (assignBtn) {
+        const id = assignBtn.dataset.assign;
+        const current = piecePeople(activeScript).people.map(m => m.id);
+        const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
+        updateActiveScript({ people: next });
+        render();
         return;
     }
 
@@ -1655,6 +1708,21 @@ document.addEventListener("click", e => {
             break;
         }
     }
+});
+
+// Formulario del equipo (Inicio)
+document.addEventListener("submit", e => {
+    if (e.target.getAttribute("id") !== "team-form") return;
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    data.id = data.memberId;
+    if (!saveTeamMember(data)) {
+        showToast("Escribe el nombre");
+        return;
+    }
+    homeUI.teamForm = null;
+    render();
+    showToast(data.id ? "Persona actualizada" : "Persona añadida al equipo");
 });
 
 // Modal de Confirmacion Dentro de la Pagina

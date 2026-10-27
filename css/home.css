@@ -843,3 +843,180 @@ body[data-view="dashboard"] .wrap {
     width: 15px;
     height: 15px;
 }
+
+.avatars {
+    display: inline-flex;
+    align-items: center;
+}
+
+.avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--av, var(--accent));
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--surface);
+    flex: none;
+}
+
+.avatars .avatar + .avatar {
+    margin-left: -6px;
+}
+
+.avatars.sm .avatar {
+    width: 20px;
+    height: 20px;
+    font-size: 0.55rem;
+}
+
+.avatars.lg .avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 0.85rem;
+}
+
+/* Equipo */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+}
+
+.team-card {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+}
+
+.team-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.team-name {
+    font-weight: 700;
+}
+
+.team-role {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.team-note {
+    display: flex;
+    gap: 5px;
+    margin-top: 6px;
+    font-size: 0.82rem;
+}
+
+.team-note .ico {
+    width: 13px;
+    height: 13px;
+    margin-top: 2px;
+    color: var(--tape);
+}
+
+.team-count {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 0.7rem;
+}
+
+.team-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.team-actions .icon-btn {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border-color: transparent;
+}
+
+.team-actions .ico {
+    width: 14px;
+    height: 14px;
+}
+
+.team-form {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1.6fr;
+    gap: 8px;
+    margin-top: 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+}
+
+.team-form input:not([type="hidden"]),
+.piece-note textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+.team-form .row {
+    grid-column: 1 / -1;
+}
+
+/* Vista de guion: quien la hace y nota */
+.assign {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.assign-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px 3px 3px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--line);
+    background: var(--bg);
+    font-size: 0.82rem;
+    opacity: 0.6;
+}
+
+.assign-chip.on {
+    opacity: 1;
+    border-color: var(--ok);
+    background: var(--ok-soft);
+}
+
+.assign-chip.on.auto {
+    border-style: dashed;
+}
+
+.piece-note textarea,
+.week-msg textarea {
+    min-height: 0;
+    resize: vertical;
+}
+
+.piece-note {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}

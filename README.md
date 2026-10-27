@@ -28,7 +28,9 @@ Cuando creas guiones para videos de redes sociales (TikTok, Reels, YouTube Short
 
 ### 0. Semana de Produccion (Inicio)
 * **Cargar semana:** Pega el kit "Semana N · Kit de produccion" (desde Word o en markdown desde Claude; el menu trae el prompt con el formato). My-Guion crea una pieza por dia con su hora, formato, responsable y fechas limite de material crudo y edicion.
-* **Inicio por semana:** Primero lo de hoy (la grabacion pendiente, lo que se publica hoy con sus historias y las fechas limite), luego los 7 dias con el estado de cada pieza, los bloques de grabacion y los pendientes por confirmar.
+* **Inicio por semana:** Arriba el mensaje de la semana para el equipo (editable) y graficos de avance (frases grabadas, piezas publicadas, dias listos y atrasados). Luego la checklist **Lo que hay que hacer** de hoy: grabaciones (tambien las atrasadas), entregas al editor, publicaciones con sus historias y pendientes, con quien hace cada cosa. Despues los 7 dias con casilla por pieza y por dia, los bloques de grabacion y los pendientes por confirmar.
+* **Equipo:** Personas con su rol y una nota (por ejemplo "nueva, graba los martes"). Se asignan solas a las piezas cuando el kit nombra su rol, o a mano en cada pieza, que ademas tiene una nota para el equipo.
+* **Guia de uso:** Quien entra por primera vez ve tres pasos para usar la pantalla; se puede volver a abrir desde el menu.
 * **Sesion de grabacion:** Cada bloque del "Plan de grabacion" encadena en el teleprompter las frases de varias piezas en el orden recomendado, solo las de las personas del bloque (gemelos o colaboradora) y separando las grabaciones de pantalla.
 * **Claqueta y tomas:** Cada frase muestra su nombre de archivo (por ejemplo `S1_JUE_G_F1`) y cuenta las tomas pedidas ("Toma 2 de 3"). `Espacio` registra una toma; al completar las tomas pasa a la siguiente frase.
 * **Guia de la semana:** Reglas de grabacion con casillas, guia de edicion y mensajes para el equipo listos para copiar.
@@ -109,8 +111,10 @@ My-Guion/
 │   ├── constants.js        # Guion de ejemplo, fases de produccion y expresiones regulares
 │   ├── parser.js           # Motor de analisis sintactico de guiones y tablas
 │   ├── kit.js              # Lector del kit de produccion semanal (dias, bloques, fechas, pendientes)
+│   ├── icons.js            # Iconos de linea en SVG, sin dependencias
 │   ├── storage.js          # Persistencia en localStorage, exportacion y backups
 │   ├── teleprompter.js     # Screen WakeLock, pantalla completa, zoom y respuesta haptica
+│   ├── team.js             # Equipo: personas, roles, notas y quien hace cada pieza
 │   ├── week.js             # Semanas, sesiones de grabacion y pantalla de Inicio
 │   └── app.js              # Controlador principal, renderizado DOM y gestion de eventos
 ├── .gitignore              # Exclusion de archivos del sistema y temporales

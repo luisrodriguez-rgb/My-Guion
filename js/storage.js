@@ -24,6 +24,8 @@ let appData = {
     weeks: [], // Kits de produccion semanales (ver js/week.js)
     activeWeekId: null,
     session: null, // Sesion de grabacion en curso: { weekId, blockId, cur }
+    team: [], // Personas del equipo: { id, name, role, note, color }
+    helpDismissed: false,
     scripts: [
         {
             id: "seamos-genios",
@@ -60,6 +62,7 @@ function loadAppData() {
                 if (!Array.isArray(appData.weeks)) appData.weeks = [];
                 if (appData.activeWeekId === undefined) appData.activeWeekId = null;
                 if (appData.session === undefined) appData.session = null;
+                if (!Array.isArray(appData.team)) appData.team = [];
 
                 // Migracion segura: garantizar campos de seguimiento sin perder tareas chuleadas
                 appData.scripts.forEach(s => {

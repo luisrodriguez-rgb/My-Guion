@@ -11,3 +11,6 @@ Thumbs.db
 # Temporary / logs
 *.log
 scratch/
+
+# Configuracion local de la vista previa (rutas de esta maquina)
+.claude/launch.json

@@ -474,8 +474,8 @@ function parseKit(text) {
     // 10. Resumen de la semana (primer parrafo)
     const summary = (globalMd.resumen || "")
         .split("\n")
-        .filter(l => l.trim() && !/^##/.test(l))
-        .slice(0, 2)
+        .filter(l => l.trim() && !/^(##|\s*\||```)/.test(l))
+        .slice(0, 1)
         .join(" ");
 
     const guideKeys = ["resumen", "plan", "guia", "instruccion", "envio", "mensaje"];

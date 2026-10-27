@@ -227,7 +227,7 @@ function computeScriptStatus(s) {
             label = "Publicado";
             baseStatus = "Publicado";
             cls = "status-publicado";
-        } else if (s.publishDate && new Date(s.publishDate).getTime() > Date.now()) {
+        } else if (editAllDone && s.publishDate && s.publishDate >= todayIso()) {
             label = "Programado";
             baseStatus = "Programado";
             cls = "status-programado";
@@ -279,62 +279,57 @@ function computeScriptStatus(s) {
 }
 
 /**
- * Actualiza el encabezado tipo claqueta con el titulo y la barra de progreso global.
+ * Actualiza el encabezado tipo claqueta: titulo, avance y menu.
+ * En Inicio muestra la semana; dentro de un guion, el guion.
  */
 function updateHeader() {
     activeScript = getActiveScript();
     const titleEl = $("vtitle");
     const cntEl = $("cnt");
+    const cntLbl = $("cnt-lbl");
     const barFillEl = $("barfill");
-    const prog = getProgress(activeScript);
+    const week = getActiveWeek();
+    const isWeekView = ["dashboard", "semana", "guia"].includes(appData.view);
+
+    let title;
+    let pct = null;
+    if (isWeekView) {
+        if (appData.view === "semana") title = "Cargar semana";
+        else title = week ? `Semana ${week.num} · ${weekRange(week)}` : "My-Guion";
+        if (week && appData.view !== "semana") pct = weekProgress(week);
+    } else if (appData.view === "guion" && isNewScript) {
+        title = "Nuevo guion";
+    } else {
+        title = activeScript.title || doc.title;
+        pct = getProgress(activeScript).percent;
+    }
 
     if (titleEl && document.activeElement !== titleEl) {
-        if (appData.view === "dashboard") {
-            titleEl.textContent = "Centro de Producción";
-            titleEl.contentEditable = "false";
-            titleEl.style.cursor = "default";
-        } else {
-            titleEl.textContent = activeScript.title || doc.title;
-            titleEl.contentEditable = "true";
-            titleEl.style.cursor = "text";
-        }
+        const editable = !isWeekView && !(appData.view === "guion" && isNewScript);
+        titleEl.textContent = title;
+        titleEl.contentEditable = editable ? "true" : "false";
+        titleEl.style.cursor = editable ? "text" : "default";
+        titleEl.title = editable ? "Haz clic para editar el nombre del video" : "";
     }
 
-    const cntLbl = $("cnt-lbl");
-    if (cntEl) {
-        if (appData.view === "dashboard") {
-            const allScripts = appData.scripts || [];
-            const n = allScripts.length;
-            cntEl.textContent = `${n}`;
-            if (cntLbl) cntLbl.textContent = n === 1 ? " guion" : " guiones";
-        } else {
-            cntEl.textContent = `${prog.percent}%`;
-            if (cntLbl) cntLbl.textContent = " listo";
-        }
+    const countWrap = cntEl && cntEl.parentElement;
+    if (countWrap) countWrap.hidden = pct === null;
+    if (cntEl && pct !== null) {
+        cntEl.textContent = `${pct}%`;
+        if (cntLbl) cntLbl.textContent = isWeekView ? " semana" : " listo";
     }
-    if (barFillEl) {
-        if (appData.view === "dashboard") {
-            const allScripts = appData.scripts || [];
-            const doneCount = allScripts.filter(s => computeScriptStatus(s).key === "publicado").length;
-            const pct = allScripts.length ? Math.round((doneCount / allScripts.length) * 100) : 0;
-            barFillEl.style.width = `${pct}%`;
-        } else {
-            barFillEl.style.width = `${prog.percent}%`;
-        }
-    }
+    if (barFillEl) barFillEl.style.width = `${pct || 0}%`;
 
-    // Boton de Tema en cabecera
+    // Menu: opciones que dependen de la semana y del tema
     const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
     const themeBtn = $("theme-toggle");
-    if (themeBtn) {
-        themeBtn.textContent = currentTheme === "dark" ? "Tema: Claro" : "Tema: Oscuro";
-    }
+    if (themeBtn) themeBtn.textContent = currentTheme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
+    document.querySelectorAll("[data-needs-week]").forEach(el => {
+        el.hidden = !week;
+    });
 
-    // Boton de retorno a biblioteca reemplazado por breadcrumbs y Volver
-    const backDashBtn = $("btn-to-dashboard");
-    if (backDashBtn) {
-        backDashBtn.style.display = "none";
-    }
+    const navBar = document.querySelector(".top-nav-bar");
+    if (navBar) navBar.hidden = appData.view === "dashboard";
 
     updateBreadcrumbs();
 }
@@ -348,235 +343,55 @@ function updateBreadcrumbs() {
     const crumbScript = $("crumb-script");
     const sepStep = $("crumb-sep-step");
     const crumbStep = $("crumb-step");
+    const v = appData.view;
 
-    if (appData.view === "dashboard") {
-        if (backBtn) backBtn.hidden = true;
-        if (sepScript) sepScript.hidden = true;
-        if (crumbScript) crumbScript.hidden = true;
-        if (sepStep) sepStep.hidden = true;
-        if (crumbStep) crumbStep.hidden = true;
-    } else if (appData.view === "guion" && isNewScript) {
-        if (backBtn) backBtn.hidden = false;
-        if (sepScript) sepScript.hidden = false;
-        if (crumbScript) {
-            crumbScript.hidden = false;
-            crumbScript.textContent = "Nuevo guion";
-            crumbScript.title = "Nuevo guion";
-            crumbScript.className = "crumb-current";
-            crumbScript.removeAttribute("href");
-        }
-        if (sepStep) sepStep.hidden = true;
-        if (crumbStep) crumbStep.hidden = true;
-    } else {
-        if (backBtn) backBtn.hidden = false;
-        if (sepScript) sepScript.hidden = false;
-        if (crumbScript) {
-            crumbScript.hidden = false;
-            crumbScript.className = "crumb-link";
-            crumbScript.setAttribute("href", "#");
-            const scriptTitle = activeScript.title || "Guion";
-            crumbScript.textContent = scriptTitle;
-            crumbScript.title = scriptTitle;
-        }
-
-        if (appData.view === "guion") {
-            if (sepStep) sepStep.hidden = false;
-            if (crumbStep) {
-                crumbStep.hidden = false;
-                crumbStep.textContent = "Editar texto";
-            }
-        } else if (appData.view === "grabar") {
-            if (sepStep) sepStep.hidden = false;
-            if (crumbStep) {
-                crumbStep.hidden = false;
-                crumbStep.textContent = "Teleprompter";
-            }
-        } else {
-            const phaseNames = {
-                notas: "Preparar",
-                antes: "Preparar",
-                grabar: "Grabar",
-                editar: "Editar",
-                publicar: "Publicar",
-            };
-            const stepName = phaseNames[activeScript.phase] || "Preparar";
-            if (sepStep) sepStep.hidden = false;
-            if (crumbStep) {
-                crumbStep.hidden = false;
-                crumbStep.textContent = stepName;
-            }
-        }
-    }
-}
-
-/**
- * Renderiza la vista de Dashboard (Biblioteca de Guiones).
- */
-function renderDashboard() {
-    const grid = $("dash-grid");
-    if (!grid) return;
-
-    if (!appData.scripts.length) {
-        grid.innerHTML = `
-      <div class="dash-empty" style="grid-column: 1 / -1;">
-        <h3>No tienes ningún guion guardado todavía</h3>
-        <p class="hint" style="margin-inline:auto">Pega el guion que te dio Claude o ChatGPT para comenzar a organizar tu rodaje.</p>
-        <button class="btn primary" id="btn-create-script-empty" style="margin-top:12px">+ Crear mi primer guion</button>
-      </div>`;
-        return;
-    }
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const sevenDaysFromNow = today + 7 * 24 * 60 * 60 * 1000;
-
-    const estaSemana = [];
-    const pendientes = [];
-    const publicados = [];
-
-    appData.scripts.forEach(s => {
-        const status = computeScriptStatus(s);
-        const isPub = status.baseStatus === "Publicado";
-
-        if (isPub) {
-            publicados.push({ s, status, overdue: false, upcoming: false });
-            return;
-        }
-
-        if (s.publishDate) {
-            const parts = s.publishDate.split("-");
-            if (parts.length === 3) {
-                const targetDate = new Date(+parts[0], +parts[1] - 1, +parts[2]).getTime();
-                if (targetDate < today) {
-                    estaSemana.push({ s, status, overdue: true, upcoming: false, targetDate });
-                    return;
-                } else if (targetDate <= sevenDaysFromNow) {
-                    estaSemana.push({ s, status, overdue: false, upcoming: true, targetDate });
-                    return;
-                }
-            }
-        }
-
-        pendientes.push({ s, status, overdue: false, upcoming: false });
-    });
-
-    const renderCard = ({ s, status, overdue, upcoming, targetDate }) => {
-        const prog = getProgress(s);
-        const isActive = s.id === appData.activeScriptId;
-
-        const dateStr = new Date(s.updatedAt || s.createdAt).toLocaleDateString("es-ES", {
-            day: "numeric",
-            month: "short",
-        });
-
-        let pubDateBadge = "";
-        if (overdue) {
-            const targetStr = new Date(targetDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-            pubDateBadge = `<span class="dash-status badge-overdue">Atrasado (${targetStr})</span>`;
-        } else if (upcoming) {
-            const targetStr = new Date(targetDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-            pubDateBadge = `<span class="dash-status badge-upcoming">Publica ${targetStr}</span>`;
-        } else if (s.publishDate) {
-            const parts = s.publishDate.split("-");
-            const targetStr = new Date(+parts[0], +parts[1] - 1, +parts[2]).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-            pubDateBadge = `<span class="dash-status">${targetStr}</span>`;
-        }
-
-        const isCardMuted = status.baseStatus === "Publicado";
-        const isCardOverdue = overdue;
-
-        return `
-        <article class="dash-card ${isActive ? "active" : ""} ${isCardMuted ? "card-muted" : ""} ${isCardOverdue ? "card-overdue" : ""}" data-open-script="${s.id}">
-          <div class="dash-card-top">
-            <div class="dash-badge-row">
-              <span class="dash-status ${status.cls}">${status.label}</span>
-              ${pubDateBadge}
-              <span class="dash-card-meta">${dateStr}</span>
-            </div>
-            <h3 class="dash-card-title">${esc(s.title || (parseScript(s.text).title))}</h3>
-            <div class="dash-card-meta">
-              <span>${prog.scenesDone}/${prog.scenesTotal} tomas</span>
-              <span>·</span>
-              <span>${prog.scenePc}% grabado</span>
-              <span>·</span>
-              <span>${prog.percent}% listo</span>
-            </div>
-          </div>
-
-          <div class="dash-card-progress">
-            <div class="p-bar"><i style="width: ${prog.scenePc}%"></i></div>
-          </div>
-
-          <div class="dash-card-actions">
-            <button class="btn primary small" data-dash-action="grabar" data-script-id="${s.id}">Grabar</button>
-            <button class="btn small" data-dash-action="plan" data-script-id="${s.id}">Plan</button>
-            <button class="btn ghost small" data-dash-action="duplicate" data-script-id="${s.id}" title="Duplicar guion">Duplicar</button>
-            <button class="btn ghost small warn" data-dash-action="delete" data-script-id="${s.id}" title="Eliminar guion">Eliminar</button>
-          </div>
-        </article>`;
+    const setSecond = (text, isLink) => {
+        sepScript.hidden = !text;
+        crumbScript.hidden = !text;
+        if (!text) return;
+        crumbScript.textContent = text;
+        crumbScript.title = text;
+        crumbScript.className = isLink ? "crumb-link" : "crumb-current";
+        if (isLink) crumbScript.setAttribute("href", "#");
+        else crumbScript.removeAttribute("href");
+    };
+    const setThird = text => {
+        sepStep.hidden = !text;
+        crumbStep.hidden = !text;
+        if (text) crumbStep.textContent = text;
     };
 
-    let fullHTML = "";
+    if (backBtn) backBtn.hidden = v === "dashboard";
 
-    // 1. Seccion Esta semana
-    if (estaSemana.length) {
-        const hasOverdue = estaSemana.some(x => x.overdue);
-        fullHTML += `
-      <section class="dash-section">
-        <div class="dash-section-header">
-          <h3 class="dash-section-title">
-            <span>Esta semana</span>
-            <span class="dash-section-badge ${hasOverdue ? "warn" : ""}">${estaSemana.length} ${estaSemana.length === 1 ? "pieza" : "piezas"}${hasOverdue ? " (con atrasadas)" : ""}</span>
-          </h3>
-        </div>
-        <div class="dash-grid">
-          ${estaSemana.map(renderCard).join("")}
-        </div>
-      </section>`;
+    if (v === "dashboard") {
+        setSecond("");
+        setThird("");
+    } else if (v === "semana") {
+        setSecond("Cargar semana", false);
+        setThird("");
+    } else if (v === "guia") {
+        setSecond("Guía de la semana", false);
+        setThird("");
+    } else if (v === "guion" && isNewScript) {
+        setSecond("Nuevo guion", false);
+        setThird("");
+    } else {
+        setSecond(activeScript.title || "Guion", true);
+        const stepNames = { notas: "Preparar", antes: "Preparar", grabar: "Grabar", editar: "Editar", publicar: "Publicar" };
+        setThird(v === "guion" ? "Editar texto" : v === "grabar" ? "Teleprompter" : stepNames[activeScript.phase] || "Preparar");
     }
-
-    // 2. Seccion Pendientes
-    fullHTML += `
-    <section class="dash-section">
-      <div class="dash-section-header">
-        <h3 class="dash-section-title">
-          <span>Pendientes</span>
-          <span class="dash-section-badge">${pendientes.length} ${pendientes.length === 1 ? "pieza" : "piezas"}</span>
-        </h3>
-      </div>
-      <div class="dash-grid">
-        ${pendientes.length ? pendientes.map(renderCard).join("") : `
-          <p class="hint" style="grid-column: 1 / -1; padding: 12px 0;">No tienes piezas pendientes adicionales.</p>
-        `}
-      </div>
-    </section>`;
-
-    // 3. Seccion Publicados (plegada y en gris)
-    if (publicados.length) {
-        fullHTML += `
-      <details class="dash-foldable-section">
-        <summary class="dash-fold-summary">
-          <span>✓ Publicados (${publicados.length})</span>
-          <span class="dash-fold-hint">Plegado · Toca para ver</span>
-        </summary>
-        <div class="dash-foldable-content">
-          <div class="dash-grid">
-            ${publicados.map(renderCard).join("")}
-          </div>
-        </div>
-      </details>`;
-    }
-
-    grid.innerHTML = fullHTML;
 }
 
 /**
  * Genera el marcado HTML para listas de items, notas, tablas y bloques de copy.
  * @param {object} s - Seccion del guion.
  * @param {number} i - Indice de la seccion.
+ * @param {{ done: object, attr: string, ns: string, key?: string }} [owner] - Donde se guardan las casillas
+ *   (por defecto el guion activo; ver scriptOwner y weekOwner en week.js).
  * @returns {string} HTML generado.
  */
-function renderItemsHTML(s, i) {
+function renderItemsHTML(s, i, owner = scriptOwner(activeScript)) {
+    const idNs = owner.ns.replace(/[^a-z0-9]/gi, "");
     let out = "";
     let openItemsList = false;
 
@@ -594,10 +409,10 @@ function renderItemsHTML(s, i) {
                 openItemsList = true;
             }
             const key = `${i}-${k}`;
-            const isChecked = !!activeScript.done[key];
+            const isChecked = !!owner.done[(owner.key || "") + key];
             out += `
         <label class="item ${isChecked ? "on" : ""}">
-          <input type="checkbox" id="c${key}" data-k="${key}" ${isChecked ? "checked" : ""}>
+          <input type="checkbox" ${owner.attr}="${esc(owner.ns + key)}" ${isChecked ? "checked" : ""}>
           <span>${esc(l.v)}</span>
         </label>`;
             return;
@@ -631,9 +446,9 @@ function renderItemsHTML(s, i) {
         <div class="copy">
           <div class="copy-h">
             <span class="lbl">${esc(l.label)}</span>
-            <button class="btn small" data-copy="${i}-${k}">Copiar</button>
+            <button class="btn small" data-copy="${idNs}${i}-${k}">Copiar</button>
           </div>
-          <pre id="cp${i}-${k}">${esc(l.paras.join("\n\n"))}</pre>
+          <pre id="cp${idNs}${i}-${k}">${esc(l.paras.join("\n\n"))}</pre>
         </div>`;
         }
     });
@@ -704,10 +519,6 @@ function renderPlan() {
     if (phasesContainer) {
         phasesContainer.innerHTML = `
       <div class="step-progress-header" style="grid-column: 1 / -1;">
-        <div class="step-meta-row">
-          <div class="step-counter-badge">Paso ${currentStep.num} de 4 · ${currentStep.name}</div>
-          <div class="step-overall-meta">${prog.percent}% completado</div>
-        </div>
         <div class="step-nav-grid" role="tablist" aria-label="Pasos del guion">
           ${CANONICAL_STEPS.map(s => {
               const isCurrent = s.id === currentStep.id;
@@ -737,23 +548,33 @@ function renderPlan() {
           }).join(" · ")
         : "Sin cambios registrados";
 
+    const pieceMeta = activeScript.weekId
+        ? [
+              [shortDayLabel(activeScript.day), activeScript.time].filter(Boolean).join(", "),
+              activeScript.formatRaw || activeScript.format,
+              activeScript.owner,
+          ].filter(Boolean)
+        : [];
+    const dues = [
+        activeScript.rawDue ? `Crudo: ${activeScript.rawDue.label}` : "",
+        activeScript.editDue ? `Edición: ${activeScript.editDue.label}` : "",
+    ].filter(Boolean);
+
     let html = `
     <div class="script-status-tracker">
+      ${pieceMeta.length ? `
+      <div class="piece-meta">
+        ${pieceMeta.map(m => `<span>${esc(m)}</span>`).join("")}
+        ${dues.length ? `<span class="piece-dues">${dues.map(esc).join(" · ")}</span>` : ""}
+      </div>` : ""}
       <div class="tracker-left">
-        <label for="status-override-select" class="tracker-label">Estado:</label>
+        <label for="status-override-select" class="tracker-label">Estado</label>
         <select id="status-override-select" class="tracker-select" title="Seleccionar estado manual o automático">
-          <option value="" ${!activeScript.manualStatus ? "selected" : ""}>Auto (${statusObj.label})</option>
-          <option value="Idea" ${activeScript.manualStatus === "Idea" ? "selected" : ""}>Idea</option>
-          <option value="Guion listo" ${activeScript.manualStatus === "Guion listo" ? "selected" : ""}>Guion listo</option>
-          <option value="Grabado" ${activeScript.manualStatus === "Grabado" ? "selected" : ""}>Grabado</option>
-          <option value="En edición" ${activeScript.manualStatus === "En edición" ? "selected" : ""}>En edición</option>
-          <option value="Editado" ${activeScript.manualStatus === "Editado" ? "selected" : ""}>Editado</option>
-          <option value="Programado" ${activeScript.manualStatus === "Programado" ? "selected" : ""}>Programado</option>
-          <option value="Publicado" ${activeScript.manualStatus === "Publicado" ? "selected" : ""}>Publicado</option>
+          <option value="" ${!activeScript.manualStatus ? "selected" : ""}>Auto · ${esc(statusObj.label)}</option>
+          ${SCRIPT_STATUSES.map(st => `<option value="${st.label}" ${activeScript.manualStatus === st.label ? "selected" : ""}>${st.label}</option>`).join("")}
         </select>
-        <span class="dash-status ${statusObj.cls}">${statusObj.label}</span>
         <div class="tracker-date-wrap">
-          <label for="script-publish-date" class="tracker-label">Publicar el:</label>
+          <label for="script-publish-date" class="tracker-label">Publicar el</label>
           <input type="date" id="script-publish-date" class="tracker-date-input" value="${activeScript.publishDate || ''}" title="Fecha límite o programada para publicar este video">
         </div>
         <button class="btn small ghost btn-edit-script-text" id="btn-edit-script-text" title="Editar el texto de este guion">Editar texto</button>
@@ -765,9 +586,8 @@ function renderPlan() {
     </div>
 
     <div class="phase-bar">
-      <h2>Paso ${currentStep.num}: ${currentStep.name}</h2>
-      <div class="row">
-        <button class="btn small ghost btn-edit-script-text" title="Editar el texto de este guion">Editar texto</button>`;
+      <h2>${currentStep.name}</h2>
+      <div class="row">`;
 
     if (currentStep.id === "grabar" && getScenes().length) {
         html += `<button class="btn primary small" data-v="grabar">Grabar escena por escena</button>`;
@@ -801,11 +621,15 @@ function renderPlan() {
             ${getScenes()
                 .map(({ s, i }, k) => {
                     const done = isSceneDone(i);
+                    const slate = shotSlate({ script: activeScript, sec: s, i, k });
+                    const says = s.says && s.says.length ? s.says.map(x => x.v).join(" ") : "";
                     return `
               <button class="shot ${done ? "d" : ""}" data-j="${k}">
                 <span class="sn">${k + 1}</span>
                 <span class="sm">
-                  <span class="st">${esc(s.title)}</span>
+                  ${slate ? `<span class="slate-mini">${esc(slate)}</span>` : ""}
+                  <span class="st">${esc(says ? `“${says}”` : s.title)}</span>
+                  ${says ? `<span class="ss" style="display:block">${esc(s.title)}${s.reps > 1 ? ` · ${s.reps} tomas` : ""}</span>` : ""}
                   ${s.screen ? `<span class="ss" style="display:block">En pantalla: ${esc(s.screen)}</span>` : ""}
                 </span>
                 <span class="tm">${esc(s.time || "")}</span>
@@ -883,150 +707,234 @@ function getSpeakerClass(who) {
 }
 
 /**
+ * Estado de grabacion: la cola de frases y la posicion, ya sea de un guion
+ * o de una sesion (bloque) que encadena varias piezas de la semana.
+ */
+function getRecState() {
+    if (appData.session) {
+        const week = appData.weeks.find(w => w.id === appData.session.weekId);
+        const sess = week && (week.sessions || []).find(x => x.id === appData.session.blockId);
+        if (week && sess) {
+            return { mode: "session", week, sess, q: sessionQueue(week, sess), cur: appData.session.cur || 0 };
+        }
+        appData.session = null;
+    }
+    return { mode: "script", q: buildScriptQueue(activeScript), cur: activeScript.cur || 0 };
+}
+
+/** Mueve la posicion del teleprompter (guion o sesion). */
+function setRecCur(n) {
+    if (appData.session) {
+        appData.session.cur = n;
+        saveAppData();
+    } else {
+        activeScript.cur = n;
+        updateActiveScript({ cur: n });
+    }
+}
+
+/**
+ * Claqueta de una frase, igual al nombre del archivo: S1_JUE_G_F1, S1_MAR_T2...
+ * @returns {string} Vacio si el guion no viene de una semana ni trae codigo.
+ */
+function shotSlate(e) {
+    const code = (e.sec.code || "").replace(/\s+a\s+/i, "-").replace(/\s+/g, "");
+    if (/^S\d+_/i.test(code)) return code.toUpperCase();
+    if (!e.script.slatePrefix) return "";
+    return `${e.script.slatePrefix}_${code || "F" + (e.k + 1)}`.toUpperCase();
+}
+
+/**
+ * Registra una toma de la frase actual. Al llegar a las tomas pedidas (o con
+ * markAll) marca la frase como grabada y pasa a la siguiente.
+ * @param {boolean} [markAll] - Dar la frase por lista sin contar tomas.
+ */
+function registerTake(markAll) {
+    const st = getRecState();
+    const e = st.q[st.cur];
+    if (!e) return;
+    const sc = e.script;
+    const key = "s" + e.i;
+    const reps = e.sec.reps || 1;
+    sc.done = sc.done || {};
+    sc.takeCount = sc.takeCount || {};
+
+    let advance = true;
+    if (!sc.done[key]) {
+        const n = markAll ? reps : (sc.takeCount[key] || 0) + 1;
+        sc.takeCount[key] = Math.min(n, reps);
+        if (n >= reps) sc.done[key] = true;
+        else advance = false;
+        sc.updatedAt = Date.now();
+        triggerHapticFeedback();
+    }
+    if (advance) setRecCur(st.cur + 1);
+    else saveAppData();
+    render();
+    window.scrollTo(0, 0);
+}
+
+/**
  * Renderiza los botones de navegacion rapida por puntos (Dots).
  */
-function renderDots(sc) {
+function renderDots(st) {
     return `
     <div class="dots">
-      ${sc
-          .map((x, k) => {
-              const done = isSceneDone(x.i);
-              const current = k === activeScript.cur;
-              return `<button data-j="${k}" class="${done ? "d" : ""} ${current ? "c" : ""}" aria-label="Ir a la escena ${k + 1}">${k + 1}</button>`;
+      ${st.q
+          .map((e, k) => {
+              const prevScript = k > 0 ? st.q[k - 1].script : null;
+              const sep = st.mode === "session" && prevScript && prevScript !== e.script ? `<span class="dots-sep" aria-hidden="true"></span>` : "";
+              return `${sep}<button data-rj="${k}" class="${isShotDone(e) ? "d" : ""} ${k === st.cur ? "c" : ""}" title="${esc(shotSlate(e) || e.sec.title)}" aria-label="Ir a la frase ${k + 1}">${k + 1}</button>`;
           })
           .join("")}
     </div>`;
 }
 
-/**
- * Renderiza la vista de Grabacion (Modo Teleprompter escena a escena).
- */
-function renderRec() {
-    const sc = getScenes();
-    document.documentElement.style.setProperty("--z", activeScript.z);
+/** Recordatorios plegables del teleprompter. */
+function renderRecRemindersHTML(st) {
+    const block = (id, title, open, body) => `
+      <details class="remind" ${open ? "open" : ""} id="${id}">
+        <summary>${title}</summary>
+        ${body}
+      </details>`;
 
-    const zoomValEl = $("zoom-val");
-    if (zoomValEl) {
-        zoomValEl.textContent = `${Math.round(activeScript.z * 100)}%`;
+    if (st.mode === "script") {
+        const remindSecs = getSecsOf("grabar");
+        if (!remindSecs.length) return "";
+        const n = remindSecs.reduce((acc, x) => acc + x.s.lines.filter(l => l.t === "item" || l.t === "note").length, 0);
+        return block("rmd", `Recordatorios para grabar (${n})`, activeScript.open, remindSecs
+            .map(({ s, i }) => (s.title ? `<div class="lead" style="padding:0 16px">${esc(s.title)}</div>` : "") +
+                `<div style="padding:0 16px 8px">${renderItemsHTML(s, i)}</div>`)
+            .join(""));
     }
 
-    if (!sc.length) {
+    let out = "";
+    const rules = parseScript(st.week.rulesText || "");
+    const ruleSecs = rules.secs.map((s, i) => ({ s, i })).filter(x => x.s.kind === "sec" && x.s.lines.some(l => l.t === "item"));
+    if (ruleSecs.length) {
+        const owner = weekOwner(st.week, "r");
+        const total = ruleSecs.reduce((acc, x) => acc + x.s.lines.filter(l => l.t === "item").length, 0);
+        const checked = ruleSecs.reduce((acc, x) => acc + x.s.lines.filter((l, k) => l.t === "item" && owner.done[`r${x.i}-${k}`]).length, 0);
+        out += block("rmd-rules", `Antes de grabar · reglas ${checked}/${total}`, false, ruleSecs
+            .map(({ s, i }) => `<div class="lead" style="padding:0 16px">${esc(s.title)}</div><div style="padding:0 16px 8px">${renderItemsHTML(s, i, owner)}</div>`)
+            .join(""));
+    }
+    const e = st.q[st.cur];
+    if (e) {
+        const parsed = parseScript(e.script.text);
+        const notes = parsed.secs.map((s, i) => ({ s, i }))
+            .filter(x => x.s.kind === "sec" && (x.s.phase === "grabar" || /^notas/i.test(x.s.title)) && x.s.lines.length);
+        if (notes.length) {
+            out += block("rmd-piece", `Notas de ${esc(e.script.title)}`, false, notes
+                .map(({ s, i }) => `<div style="padding:0 16px 8px">${renderItemsHTML(s, i, scriptOwner(e.script))}</div>`)
+                .join(""));
+        }
+    }
+    return out;
+}
+
+/**
+ * Renderiza la vista de Grabacion (teleprompter frase a frase) de un guion o de una sesion.
+ */
+function renderRec() {
+    const st = getRecState();
+    document.documentElement.style.setProperty("--z", activeScript.z);
+    const zoomValEl = $("zoom-val");
+    if (zoomValEl) zoomValEl.textContent = `${Math.round(activeScript.z * 100)}%`;
+
+    const label = st.mode === "session" ? `Bloque ${st.sess.id} · ` : "";
+    if (!st.q.length) {
         $("recpos").textContent = "";
         $("rec").innerHTML = `
-      <p class="empty">Este guion no trae escenas detectables.<br>Pega uno con tabla o con formato “Escena 1, Escena 2…” en la pestana <b>Pegar guion</b>.</p>`;
+      <p class="empty">${st.mode === "session" ? "Este bloque no tiene frases para grabar." : "Este guion no trae escenas detectables.<br>Pega uno con tabla o con formato “Escena 1, Escena 2…” en <b>Editar texto</b>."}</p>`;
         return;
     }
 
-    const remindSecs = getSecsOf("grabar");
-    const remindCount = remindSecs.reduce(
-        (acc, x) => acc + x.s.lines.filter(l => l.t === "item" || l.t === "note").length,
-        0
-    );
-
-    const remindHTML = remindSecs.length
-        ? `
-      <details class="remind" ${activeScript.open ? "open" : ""} id="rmd">
-        <summary>Recordatorios para grabar (${remindCount} notas y tips)</summary>
-        ${remindSecs
-            .map(
-                ({ s, i }) =>
-                    (s.title
-                        ? `<div class="lead" style="padding:0 16px">${esc(s.title)}</div>`
-                        : "") +
-                    `<div style="padding:0 16px 8px">${renderItemsHTML(s, i)}</div>`
-            )
-            .join("")}
-      </details>`
-        : "";
-
     // Pantalla de cierre de rodaje
-    if (activeScript.cur >= sc.length) {
-        $("recpos").textContent = "Rodaje Completo";
+    if (st.cur >= st.q.length) {
+        const pending = st.q.filter(e => !isShotDone(e)).length;
+        $("recpos").textContent = `${label}Corte`;
         $("rec").innerHTML = `
       <div class="scene wrapup">
         <b>Corte</b>
-        <p class="hint" style="margin-inline:auto; font-size:1.05rem">Todas las escenas han sido grabadas. Puedes continuar con la fase de Edicion.</p>
+        <p class="hint" style="margin-inline:auto; font-size:1.05rem">${pending
+            ? `Quedan ${pending} ${pending === 1 ? "frase" : "frases"} sin terminar. Toca su número para volver.`
+            : st.mode === "session" ? `Bloque ${esc(st.sess.id)} completo. El material crudo ya puede ir a la carpeta del editor.` : "Todas las escenas han sido grabadas. Puedes continuar con la fase de Edicion."}</p>
         <div class="row" style="justify-content:center; margin-top:16px">
-          <button class="btn" id="back">Volver a la ultima escena</button>
-          <button class="btn primary" data-ph-go="editar">Ir a Editar</button>
+          <button class="btn" id="back">Volver a la última frase</button>
+          ${st.mode === "session"
+              ? `<button class="btn primary" id="btn-exit-rec">Volver a Inicio</button>`
+              : `<button class="btn primary" data-ph-go="editar">Ir a Editar</button>`}
         </div>
       </div>
-      ${renderDots(sc)}`;
+      ${renderDots(st)}`;
         return;
     }
 
-    const { s, i } = sc[activeScript.cur];
-    const isDone = isSceneDone(i);
+    const e = st.q[st.cur];
+    const s = e.sec;
+    const done = isShotDone(e);
+    const reps = s.reps || 1;
+    const taken = (e.script.takeCount && e.script.takeCount["s" + e.i]) || 0;
+    const slate = shotSlate(e);
+    const nextTake = Math.min(taken + 1, reps);
 
-    $("recpos").textContent = `Toma ${activeScript.cur + 1} de ${sc.length}`;
+    let primary;
+    if (done) primary = "Siguiente &rarr;";
+    else if (reps === 1) primary = "Lista, siguiente";
+    else if (nextTake === reps) primary = `Toma ${reps} lista · siguiente frase`;
+    else primary = `Toma ${nextTake} lista`;
+
+    $("recpos").textContent = `${label}Frase ${st.cur + 1} de ${st.q.length}`;
     $("rec").innerHTML = `
-    ${remindHTML}
-    <article class="scene ${isDone ? "d" : ""}">
+    ${renderRecRemindersHTML(st)}
+    <article class="scene ${done ? "d" : ""}">
+      ${st.mode === "session" ? `<div class="scene-piece">${esc(shortDayLabel(e.script.day))} · ${esc(e.script.title)}</div>` : ""}
+      ${slate || reps > 1 ? `
+      <div class="slate">
+        ${slate ? `<span class="slate-code">${esc(slate)}</span>` : "<span></span>"}
+        <span class="slate-take ${done ? "done" : ""}">${done ? `✓ ${reps} ${reps === 1 ? "toma" : "tomas"}` : `Toma ${nextTake} de ${reps}`}</span>
+      </div>` : ""}
       <div class="scene-h">
-        <div class="big">${activeScript.cur + 1}</div>
+        <div class="big">${st.cur + 1}</div>
         <div class="meta">
           ${s.time ? `<span class="pill">${esc(s.time)}</span>` : ""}
           <h2>${esc(s.title)}</h2>
         </div>
       </div>
 
-      ${
-          s.action
-              ? `
+      ${s.says.length ? `
         <div class="field">
-          <div class="lbl">Que pasa (Accion)</div>
-          <div class="action">${esc(s.action)}</div>
-        </div>`
-              : ""
-      }
-
-      ${
-          s.says.length
-              ? `
-        <div class="field">
-          <div class="lbl">Que se dice (Dialogo)</div>
-          ${s.says
-              .map(
-                  x => `
+          <div class="lbl">Qué se dice</div>
+          ${s.says.map(x => `
             <div class="say">
               ${x.who ? `<span class="who ${getSpeakerClass(x.who)}">${esc(x.who)}</span>` : ""}
               <q>“${esc(x.v)}”</q>
-            </div>`
-              )
-              .join("")}
-        </div>`
-              : ""
-      }
+            </div>`).join("")}
+        </div>` : ""}
 
-      ${
-          s.screen
-              ? `
+      ${s.action ? `
         <div class="field">
-          <div class="lbl">Texto en pantalla (Overlay)</div>
+          <div class="lbl">${s.says.length ? "Cómo" : "Qué pasa"}</div>
+          <div class="action">${esc(s.action)}</div>
+        </div>` : ""}
+
+      ${s.screen ? `
+        <div class="field">
+          <div class="lbl">Texto en pantalla</div>
           <div class="screen">${esc(s.screen)}</div>
-        </div>`
-              : ""
-      }
+        </div>` : ""}
 
-      ${
-          s.extra.length
-              ? `
-        <div class="field">
-          ${s.extra.map(x => `<p class="note">${esc(x)}</p>`).join("")}
-        </div>`
-              : ""
-      }
-
-      ${s.lines && s.lines.length ? `<div class="field">${renderItemsHTML(s, i)}</div>` : ""}
+      ${s.extra.length ? `<div class="field">${s.extra.map(x => `<p class="note">${esc(x)}</p>`).join("")}</div>` : ""}
+      ${s.lines && s.lines.length ? `<div class="field">${renderItemsHTML(s, e.i, scriptOwner(e.script))}</div>` : ""}
     </article>
 
     <div class="nav">
-      <button class="btn" id="prev" ${activeScript.cur === 0 ? "disabled" : ""}>&larr; Anterior</button>
-      <button class="btn primary ${isDone ? "isdone" : ""}" id="next">
-        ${isDone ? "Siguiente &rarr;" : "Lista, siguiente"}
-      </button>
+      <button class="btn" id="prev" ${st.cur === 0 ? "disabled" : ""}>&larr; Anterior</button>
+      <button class="btn primary ${done ? "isdone" : ""}" id="next">${primary}</button>
     </div>
-    ${renderDots(sc)}`;
+    ${!done && reps > 1 ? `<div class="nav-aux"><button class="btn ghost small" id="mark-shot">Dar la frase por lista</button></div>` : ""}
+    ${renderDots(st)}`;
 }
 
 /**
@@ -1043,14 +951,20 @@ function render() {
         headerEl.hidden = appData.view === "grabar";
     }
 
-    ["dashboard", "plan", "grabar", "guion"].forEach(v => {
+    ["dashboard", "plan", "grabar", "guion", "semana", "guia"].forEach(v => {
         const viewEl = $("v-" + v);
         const tabEl = $("t-" + (v === "dashboard" ? "dash" : v));
         if (viewEl) viewEl.hidden = appData.view !== v;
         if (tabEl) tabEl.setAttribute("aria-selected", appData.view === v);
     });
 
-    if (appData.view === "dashboard") renderDashboard();
+    document.body.dataset.view = appData.view;
+    const footerEl = document.querySelector(".app-footer");
+    if (footerEl) footerEl.hidden = appData.view !== "grabar";
+    closeAppMenu();
+
+    if (appData.view === "dashboard") renderHome();
+    if (appData.view === "guia") renderGuide();
     if (appData.view === "plan") renderPlan();
     if (appData.view === "grabar") renderRec();
     if (appData.view === "guion") {
@@ -1064,6 +978,28 @@ function render() {
     }
 
     manageWakeLock(appData.view === "grabar");
+}
+
+/** Abre o cierra el menu de la cabecera. */
+function toggleAppMenu(force) {
+    const menu = $("app-menu");
+    const btn = $("btn-menu");
+    if (!menu || !btn) return;
+    const open = force !== undefined ? force : menu.hidden;
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+}
+
+function closeAppMenu() {
+    toggleAppMenu(false);
+}
+
+/** Cambia de vista y vuelve arriba. */
+function goView(view) {
+    appData.view = view;
+    saveAppData();
+    render();
+    window.scrollTo(0, 0);
 }
 
 /**
@@ -1205,6 +1141,33 @@ document.addEventListener("change", e => {
         return;
     }
 
+    const sk = e.target.dataset && e.target.dataset.sk;
+    if (sk) {
+        const [sid, key] = [sk.slice(0, sk.indexOf("|")), sk.slice(sk.indexOf("|") + 1)];
+        const script = appData.scripts.find(x => x.id === sid);
+        if (script) {
+            script.done = script.done || {};
+            script.done[key] = e.target.checked;
+            script.updatedAt = Date.now();
+            saveAppData();
+            render();
+        }
+        return;
+    }
+
+    const wk = e.target.dataset && e.target.dataset.wk;
+    if (wk) {
+        const [wid, key] = [wk.slice(0, wk.indexOf("|")), wk.slice(wk.indexOf("|") + 1)];
+        const week = appData.weeks.find(x => x.id === wid);
+        if (week) {
+            week.done = week.done || {};
+            week.done[key] = e.target.checked;
+            saveAppData();
+            render();
+        }
+        return;
+    }
+
     const k = e.target.dataset && e.target.dataset.k;
     if (!k) return;
     activeScript.done[k] = e.target.checked;
@@ -1277,7 +1240,7 @@ document.addEventListener("click", e => {
         } else if (appData.view === "guion") {
             appData.view = isNewScript ? "dashboard" : "plan";
             isNewScript = false;
-        } else if (appData.view === "plan") {
+        } else if (["plan", "semana", "guia"].includes(appData.view)) {
             appData.view = "dashboard";
         }
         saveAppData();
@@ -1305,9 +1268,69 @@ document.addEventListener("click", e => {
         if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => {});
         }
-        appData.view = "plan";
-        activeScript.phase = "grabar";
+        if (appData.session) {
+            appData.session = null;
+            appData.view = "dashboard";
+        } else {
+            appData.view = "plan";
+            activeScript.phase = "grabar";
+        }
         saveAppData();
+        render();
+        window.scrollTo(0, 0);
+        return;
+    }
+
+    // Menu de la cabecera: abrir/cerrar y cerrar al elegir o tocar fuera
+    if (e.target.closest("#btn-menu")) {
+        toggleAppMenu();
+        return;
+    }
+    if (!e.target.closest("#app-menu")) closeAppMenu();
+    else if (e.target.closest("button")) setTimeout(closeAppMenu, 0);
+
+    // Empezar o continuar una sesion de grabacion (bloque de la semana)
+    const sessBtn = e.target.closest("[data-start-session]");
+    if (sessBtn) {
+        const [wid, bid] = sessBtn.dataset.startSession.split("|");
+        const week = appData.weeks.find(w => w.id === wid);
+        const sess = week && (week.sessions || []).find(x => x.id === bid);
+        if (!sess) return;
+        const q = sessionQueue(week, sess);
+        const first = q.findIndex(x => !isShotDone(x));
+        appData.session = { weekId: wid, blockId: bid, cur: first < 0 ? 0 : first };
+        goView("grabar");
+        return;
+    }
+
+    // Cambiar de semana
+    const weekNav = e.target.closest("[data-week-nav]");
+    if (weekNav) {
+        const weeks = [...appData.weeks].sort((a, b) => a.startDate.localeCompare(b.startDate));
+        const idx = weeks.findIndex(w => w.id === (getActiveWeek() || {}).id) + Number(weekNav.dataset.weekNav);
+        if (weeks[idx]) {
+            appData.activeWeekId = weeks[idx].id;
+            saveAppData();
+            render();
+        }
+        return;
+    }
+
+    if (e.target.closest("[data-go-import]")) {
+        $("kit-src").value = "";
+        goView("semana");
+        $("kit-src").focus();
+        return;
+    }
+    if (e.target.closest("[data-go-guide]")) {
+        goView("guia");
+        return;
+    }
+
+    // Salto a una frase desde los puntos del teleprompter
+    const recDot = e.target.closest("[data-rj]");
+    if (recDot) {
+        setRecCur(+recDot.dataset.rj);
         render();
         window.scrollTo(0, 0);
         return;
@@ -1315,7 +1338,7 @@ document.addEventListener("click", e => {
 
     // Abrir tarjeta desde el Dashboard
     const cardEl = e.target.closest("[data-open-script]");
-    if (cardEl && !e.target.closest("button")) {
+    if (cardEl && (cardEl.tagName === "BUTTON" || !e.target.closest("button"))) {
         const scriptId = cardEl.dataset.openScript;
         appData.activeScriptId = scriptId;
         appData.view = "plan";
@@ -1332,6 +1355,7 @@ document.addEventListener("click", e => {
         const scriptId = dashActionBtn.dataset.scriptId;
         if (action === "grabar") {
             appData.activeScriptId = scriptId;
+            appData.session = null;
             appData.view = "grabar";
             saveAppData();
             render();
@@ -1414,6 +1438,7 @@ document.addEventListener("click", e => {
             isNewScript = false;
         }
         appData.view = t.dataset.v;
+        if (appData.view === "grabar") appData.session = null;
         if (appData.view === "guion") {
             isNewScript = false;
             $("src").value = activeScript.text;
@@ -1468,8 +1493,9 @@ document.addEventListener("click", e => {
         return;
     }
 
-    // Salto a una escena especifica desde dots o shot list
+    // Salto a una escena especifica desde la lista de tomas del guion
     if (t.dataset.j !== undefined) {
+        appData.session = null;
         activeScript.cur = +t.dataset.j;
         appData.view = "grabar";
         updateActiveScript({ cur: activeScript.cur });
@@ -1486,7 +1512,6 @@ document.addEventListener("click", e => {
         return;
     }
 
-    const sc = getScenes();
     switch (t.id) {
         case "go": {
             const v = $("src").value.trim();
@@ -1537,27 +1562,64 @@ document.addEventListener("click", e => {
             break;
         }
         case "prev": {
-            activeScript.cur = Math.max(0, activeScript.cur - 1);
-            updateActiveScript({ cur: activeScript.cur });
+            setRecCur(Math.max(0, getRecState().cur - 1));
             render();
             break;
         }
         case "next": {
-            if (sc[activeScript.cur]) {
-                const i = sc[activeScript.cur].i;
-                activeScript.done["s" + i] = true;
-                triggerHapticFeedback();
-            }
-            activeScript.cur++;
-            updateActiveScript({ done: activeScript.done, cur: activeScript.cur });
-            render();
-            window.scrollTo(0, 0);
+            registerTake(false);
+            break;
+        }
+        case "mark-shot": {
+            registerTake(true);
             break;
         }
         case "back": {
-            activeScript.cur = Math.max(0, sc.length - 1);
-            updateActiveScript({ cur: activeScript.cur });
+            setRecCur(Math.max(0, getRecState().q.length - 1));
             render();
+            break;
+        }
+        case "kit-go": {
+            const v = $("kit-src").value.trim();
+            if (!v) {
+                showToast("Pega el kit de la semana");
+                return;
+            }
+            const kit = parseKit(v);
+            if (!kit) {
+                showToast("No encontré los días (por ejemplo: Martes 27 · Reel de adelanto)");
+                return;
+            }
+            const { week, isUpdate } = importKit(kit);
+            showToast(`Semana ${week.num} ${isUpdate ? "actualizada" : "cargada"}: ${kit.pieces.length} piezas, ${kit.sessions.length} bloques`);
+            $("kit-src").value = "";
+            goView("dashboard");
+            break;
+        }
+        case "kit-clear": {
+            $("kit-src").value = "";
+            $("kit-src").focus();
+            break;
+        }
+        case "btn-copy-kit-prompt": {
+            copyToClipboard(CLAUDE_KIT_PROMPT, t);
+            showToast("Prompt del kit copiado");
+            break;
+        }
+        case "btn-delete-week": {
+            const week = getActiveWeek();
+            if (!week) break;
+            showConfirmModal({
+                title: "Eliminar semana",
+                message: `Se eliminan "${week.title}" y sus ${weekScripts(week).length} piezas, con las tomas marcadas. ¿Continuar?`,
+                confirmText: "Eliminar semana",
+                confirmClass: "warn primary",
+            }).then(confirmed => {
+                if (!confirmed) return;
+                deleteWeek(week.id);
+                goView("dashboard");
+                showToast("Semana eliminada");
+            });
             break;
         }
         case "zp": {
@@ -1678,6 +1740,9 @@ if (fileInput) {
                 if (confirmed) {
                     const existingIds = new Set(appData.scripts.map(s => s.id));
                     let addedCount = 0;
+                    (Array.isArray(imported.weeks) ? imported.weeks : []).forEach(w => {
+                        if (w && w.id && !appData.weeks.some(x => x.id === w.id)) appData.weeks.push(w);
+                    });
                     importedScripts.forEach(s => {
                         if (!s || !s.text) return;
                         let newId = s.id || ("script-" + Date.now());
@@ -1714,31 +1779,23 @@ document.addEventListener("keydown", e => {
         return;
 
     if (appData.view === "grabar") {
-        const sc = getScenes();
+        if (e.target.closest && e.target.closest("button, summary, label")) return;
+        const st = getRecState();
         if (e.key === "ArrowRight") {
             e.preventDefault();
-            if (activeScript.cur < sc.length) {
-                activeScript.cur++;
-                updateActiveScript({ cur: activeScript.cur });
+            if (st.cur < st.q.length) {
+                setRecCur(st.cur + 1);
                 render();
             }
         } else if (e.key === "ArrowLeft") {
             e.preventDefault();
-            if (activeScript.cur > 0) {
-                activeScript.cur--;
-                updateActiveScript({ cur: activeScript.cur });
+            if (st.cur > 0) {
+                setRecCur(st.cur - 1);
                 render();
             }
         } else if (e.key === " " || e.key === "Enter") {
             e.preventDefault();
-            if (sc[activeScript.cur]) {
-                const i = sc[activeScript.cur].i;
-                activeScript.done["s" + i] = true;
-                triggerHapticFeedback();
-                activeScript.cur++;
-                updateActiveScript({ done: activeScript.done, cur: activeScript.cur });
-                render();
-            }
+            registerTake(false);
         }
     }
 });

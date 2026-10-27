@@ -154,6 +154,56 @@ Caption TikTok: "..."
 ## Notas
 (explicaciones, por qué, métricas: sin casillas)`;
 
+/** Plantilla de prompt para pedirle a Claude el kit semanal en el formato que lee My-Guion */
+const CLAUDE_KIT_PROMPT = `Arma el kit de producción de la semana con esta estructura exacta (puedes escribirlo en markdown):
+
+# Semana [N] · Kit de producción ([día] [mes] – [día] [mes])
+
+## Resumen de la semana
+Un párrafo.
+| Día | Pieza | Formato | Quién la graba o diseña | Lista para |
+(una fila por día: "Lun 26 ★", ..., con la hora de publicación en "Lista para")
+
+## Plan de grabación
+| Bloque | Cuándo | Quién | Qué se graba | Duración aprox. |
+(Bloque como "B · Gemelos"; en "Qué se graba" nombra el día de cada pieza entre paréntesis: "Adelanto (martes)")
+Orden recomendado del bloque B:
+1. Pieza (viernes)
+Fechas límite para quien edita:
+| Pieza | Material crudo listo | Edición lista |
+(Pieza con el día entre paréntesis; fechas como "Lun, 7 p. m.")
+
+## Reglas de grabación para todos
+### Cámara
+- [ ] regla
+
+## [Día] [número] · [Título de la pieza]
+(una sección por día, por ejemplo "## Martes 27 · Reel de adelanto")
+Párrafo de contexto.
+### Guion
+| Tiempo | Qué se ve | Diálogo | Texto en pantalla |
+### Lista de tomas
+| Archivo | Quién | Frase | Tomas |
+(Archivo como S1_MAR_G_F1; Frase entre comillas; Tomas = número)
+### Notas
+- nota
+### Brief de edición (copiar y pegar)
+\`\`\`
+texto del brief
+\`\`\`
+### Caption
+\`\`\`
+caption
+\`\`\`
+### Historias del [día]
+1. historia
+
+## Guía de edición
+## Instrucción maestra para el editor (copiar y pegar)
+## Mensaje para [persona]
+## Pendientes por confirmar
+- [ ] Antes del jueves: pendiente`;
+
 /** Definición de fases del rodaje con expresiones regulares de emparejamiento */
 const PHASES = [
     {
@@ -174,7 +224,7 @@ const PHASES = [
     {
         id: "editar",
         name: "Editar",
-        re: /edici|editar|capcut|montaje|postpro|subt[ií]tul/i,
+        re: /edici|editar|capcut|montaje|postpro|subt[ií]tul|brief|dise[ñn]o/i,
     },
     {
         id: "publicar",

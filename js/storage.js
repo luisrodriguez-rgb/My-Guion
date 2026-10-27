@@ -19,8 +19,11 @@ function getDefaultChannels() {
  */
 let appData = {
     activeScriptId: "seamos-genios",
-    view: "dashboard", // 'dashboard', 'plan', 'grabar', 'guion'
+    view: "dashboard", // 'dashboard', 'plan', 'grabar', 'guion', 'semana', 'guia'
     theme: "auto",
+    weeks: [], // Kits de produccion semanales (ver js/week.js)
+    activeWeekId: null,
+    session: null, // Sesion de grabacion en curso: { weekId, blockId, cur }
     scripts: [
         {
             id: "seamos-genios",
@@ -54,6 +57,9 @@ function loadAppData() {
             const parsed = JSON.parse(stored);
             if (parsed && typeof parsed === "object" && Array.isArray(parsed.scripts)) {
                 appData = Object.assign(appData, parsed);
+                if (!Array.isArray(appData.weeks)) appData.weeks = [];
+                if (appData.activeWeekId === undefined) appData.activeWeekId = null;
+                if (appData.session === undefined) appData.session = null;
 
                 // Migracion segura: garantizar campos de seguimiento sin perder tareas chuleadas
                 appData.scripts.forEach(s => {
@@ -131,17 +137,16 @@ function getActiveScript() {
 }
 
 /**
- * Crea un nuevo proyecto de guion y lo establece como activo.
+ * Construye un guion vacio con todos los campos de seguimiento.
  * @param {string} title - Titulo del guion.
  * @param {string} text - Contenido del guion.
- * @returns {object} El nuevo guion creado.
+ * @returns {object}
  */
-function createScript(title, text) {
-    const id = "script-" + Date.now();
+function newScriptRecord(title, text) {
     const now = Date.now();
     const initStatus = text ? "Guion listo" : "Idea";
-    const newScript = {
-        id,
+    return {
+        id: "script-" + now + "-" + Math.random().toString(36).slice(2, 6),
         title: title || "Nuevo Guion",
         text: text || "",
         done: {},
@@ -159,8 +164,18 @@ function createScript(title, text) {
         createdAt: now,
         updatedAt: now,
     };
+}
+
+/**
+ * Crea un nuevo proyecto de guion y lo establece como activo.
+ * @param {string} title - Titulo del guion.
+ * @param {string} text - Contenido del guion.
+ * @returns {object} El nuevo guion creado.
+ */
+function createScript(title, text) {
+    const newScript = newScriptRecord(title, text);
     appData.scripts.unshift(newScript);
-    appData.activeScriptId = id;
+    appData.activeScriptId = newScript.id;
     saveAppData();
     return newScript;
 }
@@ -188,6 +203,7 @@ function duplicateScript(id) {
     const copy = JSON.parse(JSON.stringify(original));
     const now = Date.now();
     copy.id = "script-" + now;
+    delete copy.weekId;
     copy.title = `${original.title} (Copia)`;
     copy.done = {};
     copy.cur = 0;
@@ -209,18 +225,7 @@ function duplicateScript(id) {
 function deleteScript(id) {
     if (appData.scripts.length <= 1) {
         // Si es el ultimo, reiniciamos su contenido en lugar de dejar el array vacio
-        appData.scripts[0] = {
-            id: "script-" + Date.now(),
-            title: "Nuevo Guion",
-            text: "",
-            done: {},
-            cur: 0,
-            z: 1,
-            phase: "grabar",
-            open: false,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-        };
+        appData.scripts[0] = newScriptRecord("Nuevo Guion", "");
         appData.activeScriptId = appData.scripts[0].id;
     } else {
         appData.scripts = appData.scripts.filter(s => s.id !== id);

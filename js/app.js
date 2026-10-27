@@ -1142,6 +1142,21 @@ document.addEventListener("change", e => {
         return;
     }
 
+    // Marcar una pieza (o todo un dia) como hecha desde el Inicio
+    const pieceId = e.target.dataset && e.target.dataset.pieceDone;
+    if (pieceId) {
+        const script = appData.scripts.find(x => x.id === pieceId);
+        if (script) setPieceDone(script, e.target.checked);
+        render();
+        return;
+    }
+    const dayDone = e.target.dataset && e.target.dataset.dayDone;
+    if (dayDone) {
+        const week = getActiveWeek();
+        if (week) weekScripts(week).filter(x => x.day === dayDone).forEach(x => setPieceDone(x, e.target.checked));
+        render();
+        return;
+    }
     if (e.target.id === "piece-note") {
         activeScript.note = e.target.value.trim();
         updateActiveScript({ note: activeScript.note });
@@ -1336,6 +1351,42 @@ document.addEventListener("click", e => {
     }
     if (e.target.closest("[data-go-guide]")) {
         goView("guia");
+        return;
+    }
+
+    // Mensaje de la semana
+    if (e.target.closest("[data-msg-edit]")) {
+        homeUI.editingMsg = true;
+        render();
+        const input = $("week-msg-input");
+        if (input) input.focus();
+        return;
+    }
+    if (e.target.closest("[data-msg-save]")) {
+        const week = getActiveWeek();
+        if (week) week.message = $("week-msg-input").value.trim();
+        homeUI.editingMsg = false;
+        saveAppData();
+        render();
+        showToast("Mensaje guardado");
+        return;
+    }
+    if (e.target.closest("[data-msg-cancel]")) {
+        homeUI.editingMsg = false;
+        render();
+        return;
+    }
+
+    // Guia rapida de uso
+    if (e.target.closest("[data-help-dismiss]")) {
+        appData.helpDismissed = true;
+        saveAppData();
+        render();
+        return;
+    }
+    if (e.target.closest("[data-help-show]")) {
+        appData.helpDismissed = false;
+        goView("dashboard");
         return;
     }
 

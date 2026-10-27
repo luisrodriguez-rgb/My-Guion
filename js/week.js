@@ -73,7 +73,11 @@ function importKit(kit) {
             Object.assign(existing, meta, {
                 title: p.title,
                 text: p.text,
-                done: same ? existing.done : reconcileDoneState(existing.text, existing.done || {}, p.text),
+                done: Object.assign(
+                    same ? {} : reconcileDoneState(existing.text, existing.done || {}, p.text),
+                    // Casillas propias de la pieza (entregas): no dependen del texto
+                    Object.fromEntries(Object.entries(existing.done || {}).filter(([k]) => same || k.startsWith("__")))
+                ),
                 takeCount: same ? existing.takeCount || {} : {},
                 updatedAt: Date.now(),
             });
@@ -162,7 +166,7 @@ const isShotDone = e => !!(e.script.done && e.script.done["s" + e.i]);
 function pieceStage(s) {
     const st = computeScriptStatus(s);
     const prog = getProgress(s);
-    if (st.baseStatus === "Publicado") return { key: "pub", label: "Publicado" };
+    if (st.baseStatus === "Publicado") return { key: "pub", label: s.format === "Grabación" ? "Hecho" : "Publicado" };
     if (s.day && s.day < todayIso()) return { key: "late", label: "Atrasado" };
     if (st.baseStatus === "Editado" || st.baseStatus === "Programado") return { key: "ready", label: "Listo para publicar" };
     if (prog.done > 0) return { key: "wip", label: st.label };
@@ -210,148 +214,354 @@ const pendingKey = p => "p:" + clean(p.text).toLowerCase().slice(0, 60);
 // -----------------------------------------------------------------------------
 
 /** Estado de la interfaz del Inicio que no se guarda (formularios abiertos). */
-const homeUI = { teamForm: null };
+const homeUI = { editingMsg: false, teamForm: null };
 
-/** Tarjeta de la proxima sesion de grabacion. */
-function renderNextSessionHTML(week, today) {
-    const sessions = (week.sessions || [])
-        .map(sess => ({ sess, q: sessionQueue(week, sess) }))
-        .filter(x => x.q.length && x.q.some(e => !isShotDone(e)));
-    // El bloque pendiente mas antiguo primero: si uno se quedo atrasado, va antes que el de hoy
-    const next = [...sessions].sort((a, b) => (a.sess.date || "9").localeCompare(b.sess.date || "9"))[0];
+/** Una pieza esta hecha cuando se marco como publicada (o "hecha", si es grabacion). */
+const isPieceDone = s => computeScriptStatus(s).baseStatus === "Publicado";
 
-    if (!next) {
-        return `
-      <div class="today-card today-main">
-        <div class="lbl">Grabación</div>
-        <h3 class="today-title">Todo grabado</h3>
-        <p class="today-sub">No quedan frases pendientes en los bloques de esta semana.</p>
-      </div>`;
-    }
-
-    const { sess, q } = next;
-    const doneN = q.filter(isShotDone).length;
-    const byPiece = [];
-    q.forEach(e => {
-        let row = byPiece.find(r => r.script === e.script);
-        if (!row) byPiece.push((row = { script: e.script, n: 0, d: 0 }));
-        row.n++;
-        if (isShotDone(e)) row.d++;
-    });
-    const isToday = sess.date === today;
-    const isLate = sess.date && sess.date < today;
-    const when = sess.date ? (isToday ? "Hoy" : shortDayLabel(sess.date)) : "";
-
-    return `
-    <div class="today-card today-main">
-      <div class="lbl ${isLate ? "late" : ""}">${isToday ? "Hoy se graba" : isLate ? `Grabación pendiente desde el ${shortDayLabel(sess.date)}` : "Próxima grabación"}</div>
-      <h3 class="today-title">Bloque ${esc(sess.id)} · ${esc(sess.name)}</h3>
-      <p class="today-sub">${esc([when, timeIn(sess.when) || "", sess.duration].filter(Boolean).join(" · "))}</p>
-      <ol class="session-pieces">
-        ${byPiece.map(r => `
-          <li class="${r.d === r.n ? "done" : ""}">
-            <span>${esc(r.script.title)}</span>
-            <span class="mono">${r.d}/${r.n}</span>
-          </li>`).join("")}
-      </ol>
-      <button class="btn primary block" data-start-session="${esc(week.id)}|${esc(sess.id)}">
-        ${doneN ? `Continuar sesión · ${doneN}/${q.length}` : `Empezar sesión · ${q.length} frases`}
-      </button>
-    </div>`;
+/** Marca o desmarca una pieza como hecha desde el Inicio. */
+function setPieceDone(s, done) {
+    s.manualStatus = done ? "Publicado" : null;
+    s.updatedAt = Date.now();
+    computeScriptStatus(s);
+    saveAppData();
 }
 
-/** Piezas que salen hoy, con sus historias y mensajes del dia. */
-function renderTodayPiecesHTML(week, today) {
-    const pieces = weekScripts(week).filter(s => s.day === today);
-    if (!pieces.length) {
-        const next = weekScripts(week).find(s => s.day > today);
-        return `
-      <div class="today-card">
-        <div class="lbl">Hoy no se publica</div>
-        ${next ? `<p class="today-sub">Siguiente: <b>${esc(next.title)}</b> · ${shortDayLabel(next.day)}${next.time ? `, ${esc(next.time)}` : ""}</p>` : ""}
-      </div>`;
-    }
-    return pieces.map(s => {
-        const stage = pieceStage(s);
-        const parsed = parseScript(s.text);
-        const tasks = parsed.secs
-            .map((sec, i) => ({ sec, i }))
-            .filter(x => x.sec.kind === "sec" && /historias|whatsapp/i.test(x.sec.title));
-        return `
-      <div class="today-card">
-        <div class="lbl">Sale hoy${s.time ? ` · ${esc(s.time)}` : ""}</div>
-        <button class="today-piece" data-open-script="${esc(s.id)}">
-          <span class="today-title">${esc(s.title)}</span>
-          <span class="stage stage-${stage.key}">${esc(stage.label)}</span>
-        </button>
-        ${tasks.map(({ sec, i }) => `
-          <div class="today-tasks">
-            <div class="today-tasks-h">${esc(sec.title)}</div>
-            ${renderItemsHTML(sec, i, scriptOwner(s))}
-          </div>`).join("")}
-      </div>`;
-    }).join("");
-}
-
-/** Fechas limite de material crudo y edicion para hoy (y atrasadas). */
-function renderDeadlinesHTML(week, today) {
-    const rows = [];
-    weekScripts(week).forEach(s => {
-        const prog = getProgress(s);
-        const st = computeScriptStatus(s).baseStatus;
-        const rawDone = prog.scenesTotal > 0 && prog.scenesDone === prog.scenesTotal;
-        const editDone = ["Editado", "Programado", "Publicado"].includes(st);
-        if (s.rawDue && !rawDone && s.rawDue.date <= today) rows.push({ s, due: s.rawDue, what: "Material crudo", late: s.rawDue.date < today });
-        if (s.editDue && !editDone && s.editDue.date <= today) rows.push({ s, due: s.editDue, what: "Edición lista", late: s.editDue.date < today });
-    });
-    if (!rows.length) return "";
-    return `
-    <div class="today-card">
-      <div class="lbl">Fechas límite</div>
-      <ul class="deadline-list">
-        ${rows.map(r => `
-          <li class="${r.late ? "late" : ""}">
-            <span class="mono">${r.late ? shortDayLabel(r.due.date) : esc(r.due.time || "Hoy")}</span>
-            <span>${r.what} · ${esc(r.s.title)}</span>
-          </li>`).join("")}
-      </ul>
-    </div>`;
-}
-
-/** Tira de 7 dias con las piezas de cada uno. */
-function renderWeekStripHTML(week, today) {
-    const scripts = weekScripts(week);
-    const days = Array.from({ length: 7 }, (_, k) => {
+/** Dias (YYYY-MM-DD) de la semana. */
+function weekDays(week) {
+    return Array.from({ length: 7 }, (_, k) => {
         const d = parseIso(week.startDate);
         d.setDate(d.getDate() + k);
         return isoDate(d);
     });
+}
+
+/** Cifras de la semana para los graficos. */
+function weekStats(week, today) {
+    const scripts = weekScripts(week);
+    let shots = 0;
+    let shotsDone = 0;
+    scripts.forEach(s => {
+        const p = getProgress(s);
+        shots += p.scenesTotal;
+        shotsDone += p.scenesDone;
+    });
+    const days = weekDays(week).map(day => scripts.filter(s => s.day === day));
+    return {
+        pct: weekProgress(week),
+        shots,
+        shotsDone,
+        pieces: scripts.length,
+        piecesDone: scripts.filter(isPieceDone).length,
+        daysDone: days.filter(list => list.length && list.every(isPieceDone)).length,
+        daysWithWork: days.filter(list => list.length).length,
+        // Todo lo atrasado: piezas de dias pasados y lo vencido de la lista de hoy
+        late: scripts.filter(s => !isPieceDone(s) && s.day < today).length + todayItems(week, today).filter(it => it.late).length,
+    };
+}
+
+/**
+ * Lo que hay que hacer hoy, en orden: grabaciones (incluidas las atrasadas),
+ * entregas al editor, publicaciones con sus historias y pendientes.
+ * Las grabaciones y entregas se marcan solas; el resto se marca a mano.
+ */
+function todayItems(week, today) {
+    const items = [];
+    const scripts = weekScripts(week);
+    const team = getTeam();
+    const peopleFor = text => team.filter(m => fold(text).includes(fold(m.name).split(" ")[0]) || (m.role && fold(text).includes(fold(m.role).slice(0, 6))));
+
+    (week.sessions || []).forEach(sess => {
+        if (sess.recorded || !sess.date || sess.date > today) return;
+        const q = sessionQueue(week, sess);
+        if (!q.length) return;
+        const d = q.filter(isShotDone).length;
+        const done = d === q.length;
+        if (sess.date < today && done) return;
+        items.push({
+            icon: "clapper",
+            text: `Grabar bloque ${sess.id} · ${sess.name}`,
+            meta: [sess.date < today ? `desde el ${shortDayLabel(sess.date)}` : timeIn(sess.when), `${d}/${q.length} frases`, sess.who].filter(Boolean).join(" · "),
+            people: peopleFor(`${sess.who} ${sess.name}`),
+            done,
+            late: !done && sess.date < today,
+            auto: "Se marca solo cuando se graban todas las frases",
+            action: done ? "" : `<button class="btn small primary" data-start-session="${esc(week.id)}|${esc(sess.id)}">${icon("play")} ${d ? "Continuar" : "Empezar"}</button>`,
+        });
+    });
+
+    scripts.forEach(s => {
+        const prog = getProgress(s);
+        const st = computeScriptStatus(s).baseStatus;
+        const done = s.done || {};
+        // Entregas: se marcan a mano (subir el crudo a Drive no lo sabe la app)
+        const rawDone = !!done.__raw;
+        const editDone = !!done.__edit || ["Editado", "Programado", "Publicado"].includes(st);
+        const due = (d, what, ok, ic, key) => {
+            if (!d || d.date > today || (d.date < today && ok)) return;
+            const pending = key === "__raw" && prog.scenesTotal > prog.scenesDone ? ` · faltan ${prog.scenesTotal - prog.scenesDone} frases por grabar` : "";
+            items.push({
+                icon: ic,
+                text: `${what} · ${s.title}`,
+                meta: (d.date < today ? `era para el ${shortDayLabel(d.date)}` : `antes de las ${d.time || "fin del día"}`) + pending,
+                people: [],
+                done: ok,
+                late: !ok && d.date < today,
+                check: `data-sk="${esc(s.id)}|${key}"`,
+                open: s.id,
+            });
+        };
+        due(s.rawDue, "Material crudo al editor", rawDone, "send", "__raw");
+        due(s.editDue, "Edición lista", editDone, "scissors", "__edit");
+    });
+
+    scripts.filter(s => s.day === today).forEach(s => {
+        const parsed = parseScript(s.text);
+        const subs = parsed.secs
+            .map((sec, i) => ({ sec, i }))
+            .filter(x => x.sec.kind === "sec" && /historias|whatsapp/i.test(x.sec.title) && x.sec.lines.some(l => l.t === "item"));
+        items.push({
+            icon: formatIcon(s.format),
+            text: `${s.format === "Grabación" ? "" : "Publicar "}${s.title}`,
+            meta: [s.time, s.formatRaw || s.format].filter(Boolean).join(" · "),
+            people: piecePeople(s).people,
+            note: s.note,
+            done: isPieceDone(s),
+            check: `data-piece-done="${esc(s.id)}"`,
+            open: s.id,
+            subs: subs.map(({ sec, i }) => ({ title: sec.title, html: renderItemsHTML(sec, i, scriptOwner(s)), sec, i, s })),
+        });
+    });
+
+    const owner = weekOwner(week, "");
+    (week.pending || []).forEach(p => {
+        if (!p.due || p.due > today) return;
+        const key = pendingKey(p);
+        const done = !!owner.done[key];
+        if (done && p.due < today) return;
+        items.push({
+            icon: "alert",
+            text: p.text.charAt(0).toUpperCase() + p.text.slice(1),
+            meta: p.due < today ? `pendiente desde el ${shortDayLabel(p.due)}` : "confirmar hoy",
+            people: [],
+            done,
+            late: !done && p.due < today,
+            check: `data-wk="${esc(week.id)}|${esc(key)}"`,
+        });
+    });
+    return items;
+}
+
+/** Cuenta casillas hechas de una lista de hoy (incluye historias). */
+function countToday(items) {
+    let n = 0;
+    let d = 0;
+    items.forEach(it => {
+        n++;
+        if (it.done) d++;
+        (it.subs || []).forEach(sub => sub.sec.lines.forEach((l, k) => {
+            if (l.t !== "item") return;
+            n++;
+            if (sub.s.done && sub.s.done[`${sub.i}-${k}`]) d++;
+        }));
+    });
+    return { n, d };
+}
+
+/** Checklist "Hoy": lo que toca, quien lo hace y si ya esta. */
+function renderTodayChecklistHTML(week, today, isRealToday) {
+    const items = todayItems(week, today);
+    const { n, d } = countToday(items);
+    const allDone = n > 0 && d === n;
+    const pct = n ? Math.round((d / n) * 100) : 100;
+
+    const row = it => `
+      <li class="todo ${it.done ? "on" : ""} ${it.late ? "late" : ""}">
+        ${it.check
+            ? `<input type="checkbox" class="todo-check" ${it.check} ${it.done ? "checked" : ""} aria-label="Marcar: ${esc(it.text)}">`
+            : `<span class="todo-check auto ${it.done ? "on" : ""}" title="${esc(it.auto || "")}">${it.done ? icon("check") : ""}</span>`}
+        <span class="todo-icon">${icon(it.icon)}</span>
+        <div class="todo-body">
+          ${it.open ? `<button class="todo-text link" data-open-script="${esc(it.open)}">${esc(it.text)}</button>` : `<span class="todo-text">${esc(it.text)}</span>`}
+          <div class="todo-meta">
+            ${it.late ? `<span class="tag-late">Atrasado</span>` : ""}
+            <span>${esc(it.meta || "")}</span>
+            ${avatarsHTML(it.people || [], "sm")}
+          </div>
+          ${it.note ? `<div class="todo-note">${icon("note")}${esc(it.note)}</div>` : ""}
+          ${(it.subs || []).map(sub => `<div class="todo-subs"><div class="todo-subs-h">${icon("story")} ${esc(sub.title)}</div>${sub.html}</div>`).join("")}
+        </div>
+        ${it.action || ""}
+      </li>`;
+
+    return `
+    <div class="today-card today-main">
+      <div class="today-head">
+        <div>
+          <div class="lbl">${isRealToday ? `Hoy · ${esc(longDate(today))}` : `Día · ${esc(longDate(today))}`}</div>
+          <h3 class="today-title">${allDone ? "Todo listo por hoy" : n ? "Lo que hay que hacer" : "Hoy no hay tareas"}</h3>
+        </div>
+        ${n ? `<div class="today-count"><b>${d}</b>/${n}</div>` : ""}
+      </div>
+      ${n ? `<div class="meter"><i style="width:${pct}%"></i></div>` : ""}
+      ${allDone ? `<div class="all-done">${icon("trophy")}<span>Ya está todo lo de hoy. Si quieres adelantar, mira lo de mañana en la semana.</span></div>` : ""}
+      ${n ? `<ul class="todo-list">${items.map(row).join("")}</ul>` : `<p class="today-sub">Revisa la semana para adelantar trabajo.</p>`}
+    </div>`;
+}
+
+/** Proxima grabacion que no es de hoy (las de hoy y atrasadas ya estan en la checklist). */
+function renderNextSessionHTML(week, today) {
+    const next = (week.sessions || [])
+        .filter(sess => !sess.recorded && sess.date && sess.date > today)
+        .map(sess => ({ sess, q: sessionQueue(week, sess) }))
+        .filter(x => x.q.some(e => !isShotDone(e)))
+        .sort((a, b) => a.sess.date.localeCompare(b.sess.date))[0];
+    if (!next) return "";
+    const { sess, q } = next;
+    const pieces = [...new Set(q.map(e => e.script.title))];
+    return `
+    <div class="today-card">
+      <div class="lbl">${icon("clapper")} Próxima grabación</div>
+      <h3 class="today-title sm">Bloque ${esc(sess.id)} · ${esc(sess.name)}</h3>
+      <p class="today-sub">${esc([shortDayLabel(sess.date), timeIn(sess.when), sess.duration].filter(Boolean).join(" · "))}</p>
+      <ul class="mini-list">${pieces.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+      <button class="btn small block-sm" data-start-session="${esc(week.id)}|${esc(sess.id)}">${icon("play")} Abrir sesión · ${q.length} frases</button>
+    </div>`;
+}
+
+/** Quien trabaja hoy: personas asignadas a lo de hoy. */
+function renderTodayPeopleHTML(week, today) {
+    const team = getTeam();
+    if (!team.length) return "";
+    // Quien tiene algo en la lista de hoy (grabaciones, piezas y entregas)
+    const busy = new Set(todayItems(week, today).filter(it => !it.done).flatMap(it => it.people || []));
+    const people = team.filter(m => busy.has(m));
+    if (!people.length) return "";
+    return `
+    <div class="today-card">
+      <div class="lbl">${icon("users")} Hoy trabajan</div>
+      <ul class="people-list">
+        ${people.map(m => `<li>${avatarsHTML([m])}<span><b>${esc(m.name)}</b>${m.role ? ` · ${esc(m.role)}` : ""}${m.note ? `<span class="muted"> — ${esc(m.note)}</span>` : ""}</span></li>`).join("")}
+      </ul>
+    </div>`;
+}
+
+/** Anillo de progreso en SVG. */
+function donutHTML(pct, label) {
+    const r = 34;
+    const c = 2 * Math.PI * r;
+    return `
+    <div class="donut" role="img" aria-label="${pct}% ${esc(label)}">
+      <svg viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="${r}" class="donut-track"/>
+        <circle cx="40" cy="40" r="${r}" class="donut-fill" stroke-dasharray="${(c * pct) / 100} ${c}" transform="rotate(-90 40 40)"/>
+      </svg>
+      <div class="donut-label"><b>${pct}%</b><span>${esc(label)}</span></div>
+    </div>`;
+}
+
+/** Fila de graficos: avance de la semana y cifras clave. */
+function renderStatsHTML(week, today) {
+    const st = weekStats(week, today);
+    const bar = (a, b) => `<div class="meter sm"><i style="width:${b ? Math.round((a / b) * 100) : 0}%"></i></div>`;
+    const card = (ic, label, value, extra, cls = "") => `
+      <div class="stat ${cls}">
+        <div class="stat-h">${icon(ic)}<span>${label}</span></div>
+        <div class="stat-v">${value}</div>
+        ${extra}
+      </div>`;
+    return `
+    <div class="stats">
+      ${donutHTML(st.pct, "semana")}
+      ${card("clapper", "Frases grabadas", `${st.shotsDone}<small>/${st.shots}</small>`, bar(st.shotsDone, st.shots))}
+      ${card("send", "Piezas publicadas", `${st.piecesDone}<small>/${st.pieces}</small>`, bar(st.piecesDone, st.pieces))}
+      ${card("calendar", "Días listos", `${st.daysDone}<small>/${st.daysWithWork}</small>`, bar(st.daysDone, st.daysWithWork))}
+      ${card("alert", "Atrasado", `${st.late}`, `<div class="stat-foot">${st.late ? "cosas de días pasados sin terminar" : "nada atrasado"}</div>`, st.late ? "is-late" : "is-ok")}
+    </div>`;
+}
+
+/** Mensaje fijo de la semana para el equipo (editable). */
+function renderWeekMessageHTML(week) {
+    if (homeUI.editingMsg) {
+        return `
+      <div class="week-msg editing">
+        <span class="week-msg-icon">${icon("megaphone")}</span>
+        <div class="week-msg-body">
+          <div class="lbl">Mensaje de la semana para el equipo</div>
+          <textarea id="week-msg-input" rows="3" placeholder="Ej.: Esta semana lanzamos el Intensivo el jueves. Lo más importante: grabar el lunes todo lo de los gemelos.">${esc(week.message || week.summary || "")}</textarea>
+          <div class="row"><button class="btn primary small" data-msg-save>Guardar</button><button class="btn ghost small" data-msg-cancel>Cancelar</button></div>
+        </div>
+      </div>`;
+    }
+    // Los kits cargados antes guardaban la fila de encabezado de la tabla en el resumen
+    const text = week.message || String(week.summary || "").replace(/\s*\|.*$/, "");
+    return `
+    <div class="week-msg">
+      <span class="week-msg-icon">${icon("megaphone")}</span>
+      <div class="week-msg-body">
+        <div class="lbl">${week.message ? "Mensaje de la semana" : "De qué se trata esta semana"}</div>
+        <p>${esc(text || "Escribe aquí lo más importante de la semana para que cualquiera del equipo lo entienda al entrar.")}</p>
+      </div>
+      <button class="icon-btn" data-msg-edit aria-label="Editar mensaje de la semana">${icon("pencil")}</button>
+    </div>`;
+}
+
+/** Guia rapida para quien entra por primera vez. */
+function renderHelpHTML() {
+    if (appData.helpDismissed) return "";
+    const step = (n, ic, title, body) => `
+      <li><span class="help-n">${n}</span><div><b>${icon(ic)} ${title}</b><p>${body}</p></div></li>`;
+    return `
+    <div class="help-card">
+      <div class="help-head">
+        <h3>${icon("help")} Cómo usar esta pantalla</h3>
+        <button class="btn small ghost" data-help-dismiss>Entendido</button>
+      </div>
+      <ol class="help-steps">
+        ${step(1, "check", "Mira «Lo que hay que hacer»", "Es la lista de hoy. Marca cada cosa cuando la termines. Las grabaciones se marcan solas al terminar la sesión.")}
+        ${step(2, "clapper", "Para grabar, toca Empezar", "La app muestra la frase, el nombre del archivo y cuántas tomas van. Barra espaciadora = toma lista.")}
+        ${step(3, "calendar", "Cierra cada día en La semana", "Marca la casilla de cada pieza cuando se publique. Cuando todas están, el día queda tachado.")}
+      </ol>
+    </div>`;
+}
+
+/** Tira de 7 dias: casilla por dia y por pieza, avance y quien la hace. */
+function renderWeekStripHTML(week, today) {
+    const scripts = weekScripts(week);
     return `
     <section class="home-section">
       <div class="home-section-h">
-        <h3>La semana</h3>
+        <h3>${icon("calendar")} La semana</h3>
         <span class="legend">
           <i class="dot stage-todo"></i>Pendiente <i class="dot stage-wip"></i>En curso
           <i class="dot stage-ready"></i>Listo <i class="dot stage-pub"></i>Publicado <i class="dot stage-late"></i>Atrasado
         </span>
       </div>
       <div class="week-strip">
-        ${days.map(day => {
+        ${weekDays(week).map(day => {
             const items = scripts.filter(s => s.day === day);
+            const dayDone = items.length > 0 && items.every(isPieceDone);
+            const pct = items.length ? Math.round(items.reduce((a, s) => a + (isPieceDone(s) ? 100 : getProgress(s).percent), 0) / items.length) : 0;
             return `
-          <div class="week-day ${day === today ? "is-today" : ""} ${day < today ? "is-past" : ""}">
-            <div class="week-day-h">${shortDayLabel(day)}${day === today ? ` <span class="today-tag">hoy</span>` : ""}</div>
+          <div class="week-day ${day === today ? "is-today" : ""} ${day < today ? "is-past" : ""} ${dayDone ? "is-done" : ""}">
+            <div class="week-day-h">
+              ${items.length ? `<input type="checkbox" class="day-check" data-day-done="${day}" ${dayDone ? "checked" : ""} aria-label="Marcar todo el ${esc(longDate(day))} como hecho">` : ""}
+              <span class="week-day-label">${shortDayLabel(day)}</span>${day === today ? ` <span class="today-tag">hoy</span>` : ""}
+            </div>
+            ${items.length ? `<div class="meter xs"><i style="width:${pct}%"></i></div>` : ""}
             <div class="week-day-items">
             ${items.length ? items.map(s => {
                 const stage = pieceStage(s);
+                const done = isPieceDone(s);
                 return `
-              <button class="piece-chip ${s.optional ? "optional" : ""}" data-open-script="${esc(s.id)}" title="${esc(stage.label)}">
-                <i class="dot stage-${stage.key}"></i>
-                <span class="piece-chip-body">
-                  <span class="piece-chip-title">${esc(s.title)}</span>
-                  <span class="piece-chip-meta">${esc([s.format, s.time].filter(Boolean).join(" · "))}${s.optional ? " · opcional" : ""}</span>
-                </span>
-              </button>`;
+              <div class="piece-chip ${s.optional ? "optional" : ""} ${done ? "done" : ""}">
+                <input type="checkbox" class="chip-check" data-piece-done="${esc(s.id)}" ${done ? "checked" : ""} aria-label="Marcar ${esc(s.title)} como hecha">
+                <button class="piece-chip-body" data-open-script="${esc(s.id)}" title="${esc(stage.label)}">
+                  <span class="piece-chip-title"><i class="dot stage-${stage.key}"></i>${esc(s.title)}</span>
+                  <span class="piece-chip-meta">${icon(formatIcon(s.format))}${esc([s.format, s.time].filter(Boolean).join(" · "))}${s.optional ? " · opcional" : ""}</span>
+                  ${avatarsHTML(piecePeople(s).people, "sm")}${s.note ? `<span class="chip-note" title="${esc(s.note)}">${icon("note")}</span>` : ""}
+                </button>
+              </div>`;
             }).join("") : `<div class="week-day-empty">—</div>`}
             </div>
           </div>`;
@@ -366,19 +576,21 @@ function renderSessionsHTML(week, today) {
     if (!sessions.length) return "";
     return `
     <section class="home-section">
-      <div class="home-section-h"><h3>Bloques de grabación</h3></div>
+      <div class="home-section-h"><h3>${icon("clapper")} Bloques de grabación</h3></div>
       <div class="session-list">
         ${sessions.map(sess => {
             const q = sessionQueue(week, sess);
             const d = q.filter(isShotDone).length;
             const pieces = [...new Set(q.map(e => e.script.title))];
             const complete = q.length && d === q.length;
+            const late = !complete && q.length && sess.date && sess.date < today;
             return `
-          <div class="session-row ${complete ? "complete" : ""}">
-            <div class="session-id">${esc(sess.id)}</div>
+          <div class="session-row ${complete ? "complete" : ""} ${late ? "late" : ""}">
+            <div class="session-id">${complete ? icon("check") : esc(sess.id)}</div>
             <div class="session-body">
-              <div class="session-name">${esc(sess.name)} <span class="muted">· ${esc(sess.when)}</span></div>
+              <div class="session-name">${esc(sess.name)} <span class="muted">· ${esc(sess.when)}</span>${late ? ` <span class="tag-late">Atrasado</span>` : ""}</div>
               <div class="session-meta">${esc(sess.recorded ? sess.what : pieces.join(" · ") || sess.what)}</div>
+              ${q.length ? `<div class="meter xs"><i style="width:${Math.round((d / q.length) * 100)}%"></i></div>` : ""}
             </div>
             ${sess.recorded
                 ? `<span class="muted mono">ya grabado</span>`
@@ -400,7 +612,7 @@ function renderPendingHTML(week, today) {
     const open = pending.filter(p => !owner.done[pendingKey(p)]).length;
     return `
     <section class="home-section">
-      <div class="home-section-h"><h3>Por confirmar</h3><span class="count-pill">${open} de ${pending.length}</span></div>
+      <div class="home-section-h"><h3>${icon("alert")} Por confirmar</h3><span class="count-pill">${open ? `${open} sin confirmar` : "todo confirmado"}</span></div>
       <div class="items">
         ${pending.map(p => {
             const key = pendingKey(p);
@@ -434,7 +646,7 @@ function renderLooseScriptsHTML() {
             <span class="loose-title">${esc(s.title)}</span>
             <span class="dash-status ${st.cls}">${esc(st.label)}</span>
             <span class="mono muted">${prog.scenesDone}/${prog.scenesTotal}</span>
-            <button class="icon-btn" data-dash-action="delete" data-script-id="${esc(s.id)}" title="Eliminar guion" aria-label="Eliminar ${esc(s.title)}">✕</button>
+            <button class="icon-btn" data-dash-action="delete" data-script-id="${esc(s.id)}" title="Eliminar guion" aria-label="Eliminar ${esc(s.title)}">${icon("x")}</button>
           </div>`;
         }).join("")}
       </div>
@@ -458,7 +670,8 @@ function renderWeekEmptyHTML() {
 }
 
 /**
- * Renderiza la pantalla de Inicio: hoy, la semana, bloques y pendientes.
+ * Renderiza la pantalla de Inicio: mensaje, avance, hoy, la semana, bloques,
+ * pendientes y equipo.
  */
 function renderHome() {
     const root = $("dash-grid");
@@ -474,26 +687,26 @@ function renderHome() {
     const today = inWeek ? realToday : realToday < week.startDate ? week.startDate : week.endDate;
     const weeks = [...appData.weeks].sort((a, b) => a.startDate.localeCompare(b.startDate));
     const wi = weeks.findIndex(w => w.id === week.id);
+    const side = renderNextSessionHTML(week, today) + renderTodayPeopleHTML(week, today);
 
     root.innerHTML = `
-    <div class="week-head">
-      <div class="week-head-main">
-        ${weeks.length > 1 ? `<button class="icon-btn" data-week-nav="-1" ${wi <= 0 ? "disabled" : ""} aria-label="Semana anterior">‹</button>` : ""}
-        <div>
-          <div class="lbl">${inWeek ? `Hoy · ${esc(longDate(realToday))}` : realToday < week.startDate ? "Empieza pronto" : "Semana terminada"}</div>
-          ${week.summary ? `<p class="week-summary">${esc(week.summary.split(/(?<=\.)\s/)[0])}</p>` : ""}
-        </div>
-        ${weeks.length > 1 ? `<button class="icon-btn" data-week-nav="1" ${wi >= weeks.length - 1 ? "disabled" : ""} aria-label="Semana siguiente">›</button>` : ""}
-      </div>
-      <button class="btn small ghost" data-go-guide>Guía de la semana</button>
-    </div>
+    ${weeks.length > 1 ? `
+    <div class="week-switch">
+      <button class="icon-btn" data-week-nav="-1" ${wi <= 0 ? "disabled" : ""} aria-label="Semana anterior">‹</button>
+      <span class="mono">Semana ${esc(week.num)} de ${weeks.length} cargadas</span>
+      <button class="icon-btn" data-week-nav="1" ${wi >= weeks.length - 1 ? "disabled" : ""} aria-label="Semana siguiente">›</button>
+    </div>` : ""}
 
-    <div class="today-grid">
-      ${renderNextSessionHTML(week, today)}
-      <div class="today-side">
-        ${renderTodayPiecesHTML(week, today)}
-        ${renderDeadlinesHTML(week, today)}
-      </div>
+    <div class="home-top">
+      ${renderWeekMessageHTML(week)}
+      <button class="btn small ghost" data-go-guide>${icon("note")} Guía de la semana</button>
+    </div>
+    ${renderHelpHTML()}
+    ${renderStatsHTML(week, today)}
+
+    <div class="today-grid ${side.trim() ? "" : "single"}">
+      ${renderTodayChecklistHTML(week, today, inWeek)}
+      ${side.trim() ? `<div class="today-side">${side}</div>` : ""}
     </div>
 
     ${renderWeekStripHTML(week, today)}

@@ -25,6 +25,7 @@ let appData = {
     activeWeekId: null,
     session: null, // Sesion de grabacion en curso: { weekId, blockId, cur }
     team: [], // Personas del equipo: { id, name, role, note, color }
+    helpDismissed: false,
     scripts: [
         {
             id: "seamos-genios",

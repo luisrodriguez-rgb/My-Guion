@@ -1801,3 +1801,16 @@ body[data-view="dashboard"] .wrap {
 .sync-facts dd {
     font-weight: 600;
 }
+
+/* ==========================================================================
+   Celular: sin zoom al escribir y zonas tactiles comodas
+   ========================================================================== */
+@media (max-width: 760px), (pointer: coarse) {
+    /* Safari en iPhone hace zoom al tocar un campo con letra menor de 16px */
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+}

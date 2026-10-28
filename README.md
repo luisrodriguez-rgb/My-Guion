@@ -1,152 +1,143 @@
-# My-Guion
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img src="assets/logo.svg" alt="My-Guion" width="380">
+  </picture>
+</p>
 
-> **Organizador interactivo de guiones, teleprompter de rodaje y checklist de producción para creadores de contenido.**
+<p align="center">
+  <b>El plan de la semana, el guion y la grabación en un solo lugar.</b><br>
+  Pegas el kit de producción que te arma Claude, grabas frase por frase con claqueta<br>
+  y todo el equipo ve lo mismo desde el computador o el celular.
+</p>
 
-[![HTML5](https://img.shields.io/badge/HTML5-Semántico-E34F26?logo=html5&logoColor=white)](https://developer.mozilla.org/es/docs/Web/HTML)
-[![CSS3](https://img.shields.io/badge/CSS3-Modular-1572B6?logo=css3&logoColor=white)](https://developer.mozilla.org/es/docs/Web/CSS)
-[![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla%20ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/es/docs/Web/JavaScript)
-[![Licencia](https://img.shields.io/badge/Licencia-MIT-green.svg)](LICENSE)
+<p align="center">
+  <a href="https://luisrodriguez-rgb.github.io/My-Guion/"><b>Abrir la app</b></a>
+  &nbsp;·&nbsp;
+  <a href="#cómo-se-usa-una-semana">Cómo se usa</a>
+  &nbsp;·&nbsp;
+  <a href="docs/sincronizacion.md">Sincronizar dispositivos</a>
+</p>
 
----
-
-## Que es My-Guion y por que existe
-
-Cuando creas guiones para videos de redes sociales (TikTok, Reels, YouTube Shorts) con inteligencias artificiales como Claude o ChatGPT, la respuesta suele incluir:
-- Una tabla de tomas con tiempos, planos y textos en pantalla.
-- Dialogos entre dos o mas personas (P1, P2).
-- Consejos de preparacion tecnica (luces, encuadre, vestuario).
-- Checklists de grabacion y edicion.
-- Copies o captions para Instagram, TikTok y grupos de WhatsApp.
-
-**El problema:** En el momento de grabar con el celular o la camara, un chat de IA presenta demasiada friccion: la pantalla se apaga sola, no se pueden marcar las tomas terminadas, no hay zoom de lectura y no se puede seguir escena a escena.
-
-**La solucion:** **My-Guion** toma ese texto copiado directamente de Claude o ChatGPT y lo transforma al instante en una suite interactiva de rodaje lista para el movil o el computador, sin necesidad de servidores, bases de datos ni conexion a internet.
-
----
-
-## Caracteristicas Principales
-
-### 0. Semana de Produccion (Inicio)
-* **Cargar semana:** Pega el kit "Semana N · Kit de produccion" (desde Word o en markdown desde Claude; el menu trae el prompt con el formato). My-Guion crea una pieza por dia con su hora, formato, responsable y fechas limite de material crudo y edicion.
-* **Inicio por semana:** Arriba el mensaje de la semana para el equipo (editable) y graficos de avance (frases grabadas, piezas publicadas, dias listos y atrasados). Luego la checklist **Lo que hay que hacer** de hoy: grabaciones (tambien las atrasadas), entregas al editor, publicaciones con sus historias y pendientes, con quien hace cada cosa. Despues los 7 dias con casilla por pieza y por dia, los bloques de grabacion y los pendientes por confirmar.
-* **Equipo:** Personas con su rol y una nota (por ejemplo "nueva, graba los martes"). Se asignan solas a las piezas cuando el kit nombra su rol, o a mano en cada pieza, que ademas tiene una nota para el equipo.
-* **Guia de uso:** Quien entra por primera vez ve tres pasos para usar la pantalla; se puede volver a abrir desde el menu.
-* **Sesion de grabacion:** Cada bloque del "Plan de grabacion" encadena en el teleprompter las frases de varias piezas en el orden recomendado, solo las de las personas del bloque (gemelos o colaboradora) y separando las grabaciones de pantalla.
-* **Claqueta y tomas:** Cada frase muestra su nombre de archivo (por ejemplo `S1_JUE_G_F1`) y cuenta las tomas pedidas ("Toma 2 de 3"). `Espacio` registra una toma; al completar las tomas pasa a la siguiente frase.
-* **Guia de la semana:** Reglas de grabacion con casillas, guia de edicion y mensajes para el equipo listos para copiar.
-* **Sincronizar dispositivos:** Con Supabase (gratis) cada persona entra con su correo y la semana, las tomas, las casillas y el equipo se ven igual en el computador y en los celulares, en vivo. Sin configurar, todo se guarda solo en el navegador como antes. Pasos en [docs/sincronizacion.md](docs/sincronizacion.md).
-* **Actualizar sin perder avance:** Volver a pegar el kit de la misma semana actualiza las piezas y conserva tomas y casillas ya marcadas.
-
-### 1. Planificacion y Fases del Rodaje
-* **Parser Inteligente de Guiones:**
-  - Discrimina entre tablas de tomas de grabacion y tablas accesorias (como calendarios de historias o listas secundarias).
-  - Limpia automaticamente prefijos de checkbox markdown (`- [ ]`) para evitar casillas duplicadas.
-  - Elimina marcas de bloque de cita (`> `) en los captions y mensajes para que la copia sea inmediata y limpia.
-  - Detecta captions inline (como los de TikTok) y genera bloques con boton de copia dedicado.
-* **Separacion por Fases de Produccion:**
-  - **Notas:** Contexto, concepto y recomendaciones generales.
-  - **Preparar:** Checklist previo (vestuario, bateria, luces, sonido, fondo).
-  - **Grabar:** Lista de tomas numeradas y planos ordenados.
-  - **Editar:** Pautas de montaje, musica comercial permitida y subtitulado.
-  - **Publicar:** Textos listos para copiar directo a Instagram, TikTok y WhatsApp, pauta y metricas.
-* **Checklist con Persistencia:** Las casillas marcadas se guardan automaticamente en el navegador (`localStorage`).
-* **Compartir por WhatsApp:** Genera listas formateadas con casillas `[x]` y `[ ]` listas para enviar a tu equipo o hermano.
-
-### 2. Modo Grabacion (Teleprompter Escena a Escena)
-* **Vista Focalizada:** Muestra unicamente la escena actual con tipografia grande y clara.
-* **Diferenciacion de Personajes:** Identifica visualmente a los interlocutores (`P1`, `P2`) con colores distintivos.
-* **Overlay en Pantalla:** Representa los textos y letreros superpuestos como se veran en el video final.
-* **Screen WakeLock API:** Impide que la pantalla del celular se apague mientras estas grabando frente a la camara.
-* **Zoom Dinamico:** Controles `A+` y `A-` para ajustar el tamano de la letra a cualquier distancia.
-* **Atajos de Teclado:**
-  - `Espacio` o `Enter`: Marca la escena como grabada y salta a la siguiente.
-  - `->` / `<-`: Navega entre tomas.
-* **Respuesta Haptica:** Vibracion sutil en smartphones al completar cada toma.
-
-### 3. Pegado Universal de Guiones
-* Pega cualquier guion generado por IA sin necesidad de editarlo previamente.
-* El motor identifica patrones en lenguaje natural (`Escena 1`, `Toma 2`, duraciones `0-3 s`, tablas y vinetas).
-
-### 4. Diseno Cinematografico y Temas
-* Estetica de claqueta de cine minimalista sin distracciones ni emojis.
-* Modo Claro y Modo Oscuro accesibles con un solo clic.
-* Diseno 100% responsivo adaptado a las areas seguras de smartphones (Notch, Dynamic Island).
+<p align="center">
+  <img alt="Sin instalación" src="https://img.shields.io/badge/instalaci%C3%B3n-ninguna-2f7d4f">
+  <img alt="JavaScript sin frameworks" src="https://img.shields.io/badge/JavaScript-sin%20frameworks-f2c230?logo=javascript&logoColor=black">
+  <img alt="GitHub Pages" src="https://img.shields.io/badge/publicada%20en-GitHub%20Pages-232a28?logo=github">
+  <img alt="Supabase opcional" src="https://img.shields.io/badge/sincronizaci%C3%B3n-Supabase%20(opcional)-3ecf8e?logo=supabase&logoColor=white">
+</p>
 
 ---
 
-## Hoja de Ruta (Roadmap) para Eliminar Friccion
+## Qué es
 
-Basado en pruebas reales en set de grabacion, este es el plan de accion para optimizar la experiencia de uso:
+My-Guion nació grabando los videos de **Seamos Genios** (preparación para el ICFES Saber 11). Los guiones los arma Claude, pero grabar leyendo un chat en el celular es incómodo: la pantalla se apaga, no se pueden marcar las tomas y no se sabe qué falta.
 
-### Fase 1: Reduccion de Friccion en la Ingesta (Completada)
-- [x] Correccion del parser para evitar falsas escenas provenientes de tablas secundarias (como tablas de historias).
-- [x] Limpieza automatica de casillas markdown `[ ]` para evitar duplicidad visual de checkboxes.
-- [x] Deteccion automatica de captions en bloques de cita `>` y lineas inline de TikTok.
-- [x] Eliminacion de emojis en la interfaz para una experiencia visual profesional y limpia.
+Hoy la app organiza la **semana completa**: qué se publica cada día, qué se graba en cada sesión y en qué orden, qué hay que entregarle al editor y quién hace cada cosa. Quien entra entiende en segundos qué toca hoy, sin leer el documento entero.
 
-### Fase 2: Reduccion de Friccion durante la Grabacion (Proxima etapa)
-- [ ] **Filtro por Personaje:** Selector para que P1 o P2 puedan activar una vista filtrada donde solo resalten sus dialogos y acciones.
-- [ ] **Soporte para disparadores Bluetooth:** Permitir avanzar escenas usando los botones de volumen de un control remoto o auriculares Bluetooth.
-- [ ] **Gestos tactiles de deslizamiento (Swipe):** Deslizar a la izquierda o derecha en el movil para cambiar de escena comodamente con una sola mano.
-- [ ] **Temporizador de toma:** Contador integrado de segundos para verificar si la toma se mantiene dentro del rango estimado (ej: 0 a 3 segundos).
+## Cómo se usa una semana
 
-### Fase 3: Reduccion de Friccion en la Colaboracion
-- [ ] **Enlace de sincronizacion express (URL Hash):** Codificar el guion completo dentro de la URL para compartirlo por WhatsApp con un clic, permitiendo que la otra persona abra el teleprompter en su telefono sin tener que pegar nada.
-- [ ] **Exportacion de tomas en formato PDF / TXT:** Generar una hoja de rodaje imprimible o lista de planos rapida para asistentes de camara.
+1. **Pide el kit a Claude.** En la app: menú **⋯ → Cargar o actualizar semana → Copiar prompt para Claude**. Ese prompt le pide el formato exacto que la app entiende.
+2. **Pega el kit.** Sirve tal cual sale de Word o en markdown. La app crea una pieza por día, los bloques de grabación con sus frases, las fechas límite y los pendientes.
+3. **Abre el Inicio cada día.** Arriba está **Lo que hay que hacer**: lo que se graba (incluido lo atrasado), lo que hay que entregar al editor, lo que se publica con sus historias y lo que hay que confirmar. Cada cosa dice quién la hace.
+4. **Graba por bloques.** Toca **Empezar** en un bloque: el teleprompter encadena las frases de varias piezas en el orden recomendado y muestra la claqueta con el nombre del archivo (`S1_VIE_A_F1`) y la toma (`Toma 2 de 3`). La barra espaciadora marca la toma.
+5. **Cierra el día.** Marca cada pieza cuando se publique; cuando están todas, el día queda tachado.
+6. **Opcional: sincroniza.** Con Supabase, cada persona entra con su correo y todos ven lo mismo, en vivo. Ver [docs/sincronizacion.md](docs/sincronizacion.md).
 
----
+Si vuelves a pegar el kit de la misma semana (por ejemplo, con un cambio de último minuto), se actualiza sin perder las tomas ni las casillas marcadas.
 
-## Arquitectura y Estructura del Proyecto
+## Qué trae
+
+**Inicio de la semana**
+- Mensaje de la semana para el equipo, editable.
+- Gráficos de avance: frases grabadas, piezas publicadas, días listos y lo atrasado.
+- Lista de hoy con casillas, quién hace cada cosa y un aviso de "Todo listo por hoy".
+- Los 7 días con casilla por pieza y por día, formato, hora y responsables.
+- Bloques de grabación con su avance y pendientes por confirmar con su fecha.
+- Guía rápida de tres pasos para quien entra por primera vez.
+
+**Grabación**
+- Teleprompter de una frase a la vez, con letra grande ajustable (`A−` / `A+`) y pantalla completa.
+- Claqueta con el nombre del archivo y conteo de tomas por frase.
+- Sesiones por bloque: solo las frases de las personas de ese bloque, separando las grabaciones de pantalla.
+- Reglas de grabación del kit (cámara, luz, audio…) como lista para revisar antes de empezar.
+- La pantalla no se apaga mientras grabas y, en Android, el celular vibra al marcar cada toma.
+
+**Equipo y datos**
+- Personas con rol y nota (por ejemplo, *"nueva, mándale el mensaje de WhatsApp"*). Se asignan solas cuando el kit nombra su rol.
+- Nota por pieza para el equipo.
+- Guía de la semana con la guía de edición y los mensajes listos para copiar.
+- Sincronización opcional entre dispositivos y personas (Supabase), con cambios en vivo y sin perder lo marcado sin conexión.
+- Respaldo en JSON para descargar, copiar o importar.
+
+**Guiones sueltos**
+- Pega cualquier guion de Claude o ChatGPT: la app separa las escenas y reparte las tareas en **Preparar → Grabar → Editar → Publicar**.
+- Captions listos para copiar, casillas de publicación por red social y estados automáticos (`Grabando 3/7`, `En edición`, `Publicado`).
+- Checklist para compartir por WhatsApp.
+
+## Atajos en el teleprompter
+
+| Tecla | Qué hace |
+|---|---|
+| `Espacio` o `Enter` | Toma lista; al completar las tomas pedidas pasa a la siguiente frase |
+| `→` / `←` | Siguiente o anterior frase, sin marcar nada |
+
+## Usarla
+
+- **En línea:** [luisrodriguez-rgb.github.io/My-Guion](https://luisrodriguez-rgb.github.io/My-Guion/).
+- **En el celular como app:** ábrela en Safari → **Compartir → Agregar a inicio**.
+- **En tu computador:** no necesita instalar nada.
+
+  ```bash
+  git clone https://github.com/luisrodriguez-rgb/My-Guion.git
+  ```
+
+  Luego abre `index.html` en el navegador.
+
+## Dónde quedan los datos
+
+- **Sin sincronizar**, todo se guarda en el navegador donde usas la app (`localStorage`). Cada navegador tiene su propia copia; para pasar datos usa **Descargar respaldo** e **Importar respaldo** del menú.
+- **Con Supabase**, los datos del equipo quedan en tu proyecto. Solo pueden leerlos o cambiarlos los correos que están en el equipo (reglas en [docs/supabase.sql](docs/supabase.sql)). La clave de `js/config.js` es pública a propósito.
+
+## Estructura
 
 ```
 My-Guion/
-├── index.html              # Estructura semantica HTML5, metadatos y accesibilidad
-├── Myguion.html            # Redireccion de compatibilidad retroactiva
+├── index.html            Página única de la app
+├── assets/               Logo (SVG) e ícono para el celular
 ├── css/
-│   ├── variables.css       # Tokens de diseno, paleta cinematografica y temas (Dark/Light)
-│   ├── layout.css          # Contenedores, area segura movil, claqueta y pestanas
-│   ├── components.css      # Tarjetas, teleprompter, botones, shot list y badges
-│   ├── home.css            # Inicio por semana, menu, sesion de grabacion y claqueta
-│   └── style.css           # Hoja maestra modular
+│   ├── variables.css     Colores y temas claro/oscuro
+│   ├── layout.css        Cabecera tipo claqueta y estructura
+│   ├── components.css    Tarjetas, teleprompter, botones y listas
+│   ├── home.css          Inicio, gráficos, equipo, claqueta y sincronización
+│   └── style.css         Importa todo lo anterior
 ├── js/
-│   ├── constants.js        # Guion de ejemplo, fases de produccion y expresiones regulares
-│   ├── parser.js           # Motor de analisis sintactico de guiones y tablas
-│   ├── kit.js              # Lector del kit de produccion semanal (dias, bloques, fechas, pendientes)
-│   ├── icons.js            # Iconos de linea en SVG, sin dependencias
-│   ├── config.js           # Direccion y clave publica de Supabase (vacio = solo este navegador)
-│   ├── storage.js          # Persistencia en localStorage, exportacion y backups
-│   ├── sync.js             # Sincronizacion entre dispositivos con Supabase
-│   ├── teleprompter.js     # Screen WakeLock, pantalla completa, zoom y respuesta haptica
-│   ├── team.js             # Equipo: personas, roles, notas y quien hace cada pieza
-│   ├── week.js             # Semanas, sesiones de grabacion y pantalla de Inicio
-│   └── app.js              # Controlador principal, renderizado DOM y gestion de eventos
-├── .gitignore              # Exclusion de archivos del sistema y temporales
-└── README.md               # Documentacion integral y hoja de ruta
+│   ├── constants.js      Guion de ejemplo, fases y prompts para Claude
+│   ├── parser.js         Lee guiones: escenas, lista de tomas, tareas y captions
+│   ├── kit.js            Lee el kit semanal: días, bloques, fechas y pendientes
+│   ├── icons.js          Íconos de línea en SVG
+│   ├── config.js         Dirección y clave pública de Supabase
+│   ├── storage.js        Guardado local y respaldos
+│   ├── teleprompter.js   Pantalla encendida, pantalla completa y vibración
+│   ├── team.js           Equipo y quién hace cada pieza
+│   ├── week.js           Semanas, sesiones de grabación e Inicio
+│   ├── sync.js           Sincronización con Supabase
+│   └── app.js            Vistas y eventos
+└── docs/
+    ├── sincronizacion.md Cómo conectar Supabase paso a paso
+    └── supabase.sql      Tablas y reglas de acceso
 ```
 
----
+## Desarrollo
 
-## Inicio Rapido
+- **Sin dependencias ni compilación.** HTML, CSS y JavaScript sin frameworks. Supabase solo se descarga si `js/config.js` tiene una dirección.
+- **Caché:** al cambiar un JS o CSS, sube su `?v=` en `index.html` o en `css/style.css` para que los navegadores bajen la versión nueva.
+- **Commits atómicos:** `tipo(ámbito): descripción` en español, sin tildes. La skill [`commits-atomicos`](.claude/skills/commits-atomicos/SKILL.md) explica cómo dividir un cambio y trae un ayudante para preparar solo algunas partes de un archivo.
+- **Publicación:** GitHub Pages publica la rama `main` sola, a los pocos minutos de cada fusión.
 
-### Uso Local (Sin instalacion)
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/luisrodriguez-rgb/My-Guion.git
-   cd My-Guion
-   ```
-2. Abre `index.html` en tu navegador:
-   ```bash
-   open index.html
-   ```
+## Próximos pasos
 
-*No requiere `npm`, Node.js ni compiladores. Funciona completamente offline.*
-
----
-
-## Despliegue en GitHub Pages
-
-1. Ve a tu repositorio en GitHub: `https://github.com/luisrodriguez-rgb/My-Guion`.
-2. Dirigete a **Settings** > **Pages**.
-3. En **Source**, selecciona `Deploy from a branch`.
-4. Elige la rama `main` y la carpeta `/ (root)`.
-5. Guarda los cambios. Tu aplicacion estara disponible en `https://luisrodriguez-rgb.github.io/My-Guion/`.
+- [ ] Correo propio (SMTP) para que los enlaces de acceso lleguen a cualquiera del equipo.
+- [ ] Avanzar frases con gestos o con un control Bluetooth, sin tocar la pantalla.
+- [ ] Ver solo las frases de una persona en el teleprompter.
+- [ ] Temporizador de toma para saber si la frase cabe en su tiempo.
+- [ ] Exportar la hoja de rodaje en PDF.

@@ -44,6 +44,11 @@ const sync = {
     handling: null,
 };
 
+/** Direccion base del proyecto: acepta tambien la que copia Supabase con /rest/v1/. */
+function supabaseBaseUrl(url) {
+    return String(url).trim().replace(/\/(rest|auth)\/v1\/?$/, "").replace(/\/+$/, "");
+}
+
 function syncEnabled() {
     return typeof SYNC_CONFIG !== "undefined" && !!SYNC_CONFIG.url && !!SYNC_CONFIG.anonKey;
 }
@@ -381,7 +386,7 @@ async function initSync() {
     sync.synced = saved.synced || {};
     sync.versions = saved.versions || {};
     sync.lastAt = saved.lastAt || null;
-    sync.client = window.supabase.createClient(SYNC_CONFIG.url, SYNC_CONFIG.anonKey, {
+    sync.client = window.supabase.createClient(supabaseBaseUrl(SYNC_CONFIG.url), SYNC_CONFIG.anonKey, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
     sync.client.auth.onAuthStateChange((event, session) => {

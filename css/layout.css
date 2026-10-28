@@ -189,13 +189,13 @@ body::before {
     gap: 6px;
 }
 
-.brand::before {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--tape);
+/* Logo de la app a la izquierda del titulo */
+.board-logo {
+    width: 38px;
+    height: 38px;
+    flex: none;
+    border-radius: 9px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .ttl {
@@ -363,6 +363,11 @@ body::before {
     }
     .brand {
         display: none !important;
+    }
+    .board-logo {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
     }
     .ttl-meta {
         margin-bottom: 0;

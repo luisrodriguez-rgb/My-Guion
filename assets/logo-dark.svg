@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" role="img" aria-labelledby="t">
+  <title id="t">My-Guion</title>
+  <g transform="translate(8 8)">
+    <rect x="0.5" y="0.5" width="63" height="63" rx="13.5" fill="#1d2321" stroke="#3a4441"/>
+    <g transform="rotate(-16 12 22)">
+      <rect x="12" y="13" width="40" height="9" rx="2" fill="#f4f6f5"/>
+      <path d="M18 13h6l-5 9h-6zM30 13h6l-5 9h-6zM42 13h6l-5 9h-6z" fill="#1d2321"/>
+    </g>
+    <rect x="12" y="24" width="40" height="28" rx="3" fill="#f4f6f5"/>
+    <rect x="17" y="30" width="22" height="4.5" rx="2.25" fill="#d9481c"/>
+    <rect x="17" y="38" width="30" height="3" rx="1.5" fill="#1d2321" fill-opacity=".45"/>
+    <rect x="17" y="44" width="20" height="3" rx="1.5" fill="#1d2321" fill-opacity=".45"/>
+    <circle cx="46" cy="32.25" r="2.75" fill="#f2c230"/>
+  </g>
+  <text x="90" y="45" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="36" font-weight="800" letter-spacing="-0.5" fill="#f4f6f5">My-Guion</text>
+  <text x="91" y="66" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="1.6" fill="#9aa5a0">GUIONES · RODAJE · SEMANA</text>
+</svg>

@@ -378,7 +378,7 @@ function renderTodayChecklistHTML(week, today, isRealToday) {
     const row = it => `
       <li class="todo ${it.done ? "on" : ""} ${it.late ? "late" : ""}">
         ${it.check
-            ? `<input type="checkbox" class="todo-check" ${it.check} ${it.done ? "checked" : ""} aria-label="Marcar: ${esc(it.text)}">`
+            ? `<label class="hit"><input type="checkbox" class="todo-check" ${it.check} ${it.done ? "checked" : ""} aria-label="Marcar: ${esc(it.text)}"></label>`
             : `<span class="todo-check auto ${it.done ? "on" : ""}" title="${esc(it.auto || "")}">${it.done ? icon("check") : ""}</span>`}
         <span class="todo-icon">${icon(it.icon)}</span>
         <div class="todo-body">
@@ -545,7 +545,7 @@ function renderWeekStripHTML(week, today) {
             return `
           <div class="week-day ${day === today ? "is-today" : ""} ${day < today ? "is-past" : ""} ${dayDone ? "is-done" : ""}">
             <div class="week-day-h">
-              ${items.length ? `<input type="checkbox" class="day-check" data-day-done="${day}" ${dayDone ? "checked" : ""} aria-label="Marcar todo el ${esc(longDate(day))} como hecho">` : ""}
+              ${items.length ? `<label class="hit"><input type="checkbox" class="day-check" data-day-done="${day}" ${dayDone ? "checked" : ""} aria-label="Marcar todo el ${esc(longDate(day))} como hecho"></label>` : ""}
               <span class="week-day-label">${shortDayLabel(day)}</span>${day === today ? ` <span class="today-tag">hoy</span>` : ""}
             </div>
             ${items.length ? `<div class="meter xs"><i style="width:${pct}%"></i></div>` : ""}
@@ -555,7 +555,7 @@ function renderWeekStripHTML(week, today) {
                 const done = isPieceDone(s);
                 return `
               <div class="piece-chip ${s.optional ? "optional" : ""} ${done ? "done" : ""}">
-                <input type="checkbox" class="chip-check" data-piece-done="${esc(s.id)}" ${done ? "checked" : ""} aria-label="Marcar ${esc(s.title)} como hecha">
+                <label class="hit"><input type="checkbox" class="chip-check" data-piece-done="${esc(s.id)}" ${done ? "checked" : ""} aria-label="Marcar ${esc(s.title)} como hecha"></label>
                 <button class="piece-chip-body" data-open-script="${esc(s.id)}" title="${esc(stage.label)}">
                   <span class="piece-chip-title"><i class="dot stage-${stage.key}"></i>${esc(s.title)}</span>
                   <span class="piece-chip-meta">${icon(formatIcon(s.format))}${esc([s.format, s.time].filter(Boolean).join(" · "))}${s.optional ? " · opcional" : ""}</span>

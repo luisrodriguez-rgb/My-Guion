@@ -314,10 +314,9 @@ function parseKit(text) {
         const now = new Date();
         start = new Date(now.getFullYear(), now.getMonth(), first.dayNum);
         if (start.getTime() - now.getTime() > 20 * 864e5) start.setMonth(start.getMonth() - 1);
+        // Sin rango en el titulo: la semana empieza el lunes de la semana del primer dia
+        while (start.getDay() !== 1) start.setDate(start.getDate() - 1);
     }
-    // Retroceder hasta el dia de la semana del primer bloque (normalmente lunes)
-    const firstWd = days[0].weekday;
-    while (firstWd >= 0 && start.getDay() !== firstWd) start.setDate(start.getDate() - 1);
     const dates = Array.from({ length: 7 }, (_, k) => {
         const d = new Date(start);
         d.setDate(start.getDate() + k);

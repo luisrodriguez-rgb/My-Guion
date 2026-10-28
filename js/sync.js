@@ -401,6 +401,25 @@ async function initSync() {
     }, 30000);
 }
 
+/**
+ * Motivo legible de un error de Supabase al pedir el enlace.
+ * @param {string} msg - Mensaje original (en ingles).
+ * @returns {string}
+ */
+function authErrorText(msg) {
+    const m = String(msg || "");
+    if (/not authorized|not allowed to send/i.test(m)) {
+        return "Supabase no envía correos a esta dirección. Con el envío gratuito de Supabase solo llegan a los correos que son parte del equipo de tu cuenta de Supabase (Organization > Team), o hay que configurar un servidor de correo propio (SMTP). Ver docs/sincronizacion.md.";
+    }
+    if (/rate limit|too many|seconds/i.test(m)) {
+        return "Se pidieron muchos enlaces seguidos. Espera unos minutos y vuelve a intentarlo.";
+    }
+    if (/invalid.*email|email.*invalid/i.test(m)) return "El correo no es válido. Revísalo.";
+    if (/signups? not allowed/i.test(m)) return "En Supabase está apagado el registro de usuarios nuevos (Authentication > Sign In / Providers > Allow new users to sign up).";
+    if (/fetch|network/i.test(m)) return "No hay conexión con Supabase. Revisa el internet.";
+    return m || "Supabase no respondió.";
+}
+
 /** Envia el enlace de acceso al correo. */
 async function syncSignIn(email) {
     const { error } = await sync.client.auth.signInWithOtp({
@@ -466,6 +485,8 @@ function renderSync() {
       <p class="hint">Quien administra la app debe seguir los pasos de <b>docs/sincronizacion.md</b> (crear el proyecto y poner la dirección y la clave en <b>js/config.js</b>). Mientras tanto puedes pasar datos con <b>Descargar respaldo</b> e <b>Importar respaldo</b> del menú.</p>`;
     } else if (st === "signed-out" || st === "link-sent" || (st === "loading" && !sync.user)) {
         body = `
+      ${sync.error && st === "signed-out" ? `
+      <div class="sync-note bad">${icon("alert")}<span><b>No se pudo enviar el enlace.</b> ${esc(authErrorText(sync.error))}<br><small class="muted">Supabase: ${esc(sync.error)}</small></span></div>` : ""}
       ${st === "link-sent" ? `
       <div class="sync-note ok">${icon("message")}<span>Te enviamos un enlace a <b>${esc(sync.sentTo)}</b>. Ábrelo <b>en este mismo navegador</b> para entrar.</span></div>` : ""}
       <form id="sync-form" class="sync-form">

@@ -1790,7 +1790,7 @@ document.addEventListener("submit", e => {
     e.preventDefault();
     const email = String(new FormData(e.target).get("email") || "").trim();
     if (!email) return;
-    syncSignIn(email).then(ok => showToast(ok ? "Enlace enviado: revisa tu correo" : "No se pudo enviar el enlace"));
+    syncSignIn(email).then(ok => showToast(ok ? "Enlace enviado: revisa tu correo" : "No se pudo enviar el enlace: mira el motivo arriba"));
 });
 
 // Formulario del equipo (Inicio)

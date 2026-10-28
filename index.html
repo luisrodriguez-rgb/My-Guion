@@ -45,6 +45,7 @@
                 <div class="count" aria-live="polite">
                     <b id="cnt">0%</b><span id="cnt-lbl"> listo</span>
                 </div>
+                <button class="sync-indicator" id="sync-indicator" data-go-sync hidden><span class="sync-dot"></span></button>
                 <div class="menu-wrap">
                     <button class="board-btn menu-btn" id="btn-menu" aria-haspopup="true" aria-expanded="false" aria-controls="app-menu" title="Menú">
                         <span aria-hidden="true">⋯</span><span class="sr-only">Menú</span>
@@ -53,6 +54,7 @@
                         <button role="menuitem" data-go-import>Cargar o actualizar semana</button>
                         <button role="menuitem" data-go-guide data-needs-week>Guía de la semana</button>
                         <button role="menuitem" id="btn-create-script">Nuevo guion suelto</button>
+                        <button role="menuitem" data-go-sync>Sincronizar dispositivos</button>
                         <button role="menuitem" data-help-show>Cómo se usa</button>
                         <hr>
                         <button role="menuitem" id="btn-export-backup">Descargar respaldo</button>
@@ -98,6 +100,11 @@
                 <button class="btn primary" id="kit-go">Cargar semana</button>
                 <button class="btn ghost" id="kit-clear">Borrar texto</button>
             </div>
+        </section>
+
+        <!-- Vista: Sincronizar dispositivos (Supabase) -->
+        <section id="v-sync" class="view" hidden>
+            <div id="sync-view"></div>
         </section>
 
         <!-- Vista: Guia de la semana (reglas, edicion, mensajes) -->

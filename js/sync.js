@@ -431,3 +431,71 @@ async function syncNow() {
         setSyncStatus(navigator.onLine === false ? "offline" : "error", e.message || String(e));
     }
 }
+
+// -----------------------------------------------------------------------------
+// Interfaz: indicador en la cabecera y pantalla "Sincronizar dispositivos"
+// -----------------------------------------------------------------------------
+
+/** Punto de estado junto al menu: verde sincronizado, amarillo guardando, rojo con problema. */
+function updateSyncIndicator() {
+    const el = document.getElementById("sync-indicator");
+    if (!el) return;
+    el.hidden = sync.status === "local";
+    el.className = `sync-indicator is-${sync.status}`;
+    el.title = SYNC_LABELS[sync.status] + (sync.error ? ` · ${sync.error}` : "");
+    el.setAttribute("aria-label", el.title);
+}
+
+function renderSync() {
+    const root = document.getElementById("sync-view");
+    if (!root) return;
+    const st = sync.status;
+    const last = sync.lastAt
+        ? new Date(sync.lastAt).toLocaleString("es-ES", { weekday: "short", hour: "numeric", minute: "2-digit" })
+        : "todavía no";
+
+    let body = "";
+    if (st === "local") {
+        body = `
+      <p>Esta copia de la app todavía no está conectada a Supabase, así que todo se guarda solo en este navegador.</p>
+      <p class="hint">Quien administra la app debe seguir los pasos de <b>docs/sincronizacion.md</b> (crear el proyecto y poner la dirección y la clave en <b>js/config.js</b>). Mientras tanto puedes pasar datos con <b>Descargar respaldo</b> e <b>Importar respaldo</b> del menú.</p>`;
+    } else if (st === "signed-out" || st === "link-sent" || (st === "loading" && !sync.user)) {
+        body = `
+      ${st === "link-sent" ? `
+      <div class="sync-note ok">${icon("message")}<span>Te enviamos un enlace a <b>${esc(sync.sentTo)}</b>. Ábrelo <b>en este mismo navegador</b> para entrar.</span></div>` : ""}
+      <form id="sync-form" class="sync-form">
+        <label for="sync-email" class="tracker-label">Tu correo</label>
+        <div class="row">
+          <input id="sync-email" type="email" name="email" required placeholder="nombre@correo.com" autocomplete="email" value="${esc(sync.sentTo)}">
+          <button class="btn primary" type="submit">${st === "link-sent" ? "Reenviar enlace" : "Enviarme el enlace"}</button>
+        </div>
+        <p class="hint">No hay contraseña: te llega un enlace por correo. Solo entran los correos que están en el equipo.</p>
+      </form>`;
+    } else if (st === "no-access") {
+        body = `
+      <div class="sync-note bad">${icon("alert")}<span>El correo <b>${esc(sync.user ? sync.user.email : "")}</b> no está en el equipo. Pide que lo agreguen (docs/sincronizacion.md, "Agregar o quitar personas").</span></div>
+      <div class="row"><button class="btn" id="btn-sync-out">Cerrar sesión</button></div>`;
+    } else {
+        body = `
+      <dl class="sync-facts">
+        <div><dt>Conectado como</dt><dd>${esc(sync.user ? sync.user.email : "")}</dd></div>
+        <div><dt>Equipo</dt><dd>${esc(sync.workspace ? sync.workspace.name : "")}</dd></div>
+        <div><dt>Última sincronización</dt><dd>${esc(last)}</dd></div>
+      </dl>
+      ${sync.error ? `<div class="sync-note bad">${icon("alert")}<span>${esc(sync.error)}. Lo que marques se guarda aquí y se sube cuando vuelva la conexión.</span></div>` : ""}
+      <div class="row">
+        <button class="btn primary" id="btn-sync-now">Sincronizar ahora</button>
+        <button class="btn ghost" id="btn-sync-out">Cerrar sesión</button>
+      </div>`;
+    }
+
+    root.innerHTML = `
+    <div class="sync-head">
+      <h2>Sincronizar dispositivos</h2>
+      <p class="hint">Con tu correo, la semana, las tomas, las casillas y el equipo se ven igual en el computador, en el celular y en los dispositivos del equipo.</p>
+    </div>
+    <div class="sync-card">
+      <div class="sync-status is-${st}"><span class="sync-dot"></span>${esc(SYNC_LABELS[st])}</div>
+      ${body}
+    </div>`;
+}

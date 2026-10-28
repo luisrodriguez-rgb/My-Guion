@@ -289,14 +289,15 @@ function updateHeader() {
     const cntLbl = $("cnt-lbl");
     const barFillEl = $("barfill");
     const week = getActiveWeek();
-    const isWeekView = ["dashboard", "semana", "guia"].includes(appData.view);
+    const isWeekView = ["dashboard", "semana", "guia", "sync"].includes(appData.view);
 
     let title;
     let pct = null;
     if (isWeekView) {
         if (appData.view === "semana") title = "Cargar semana";
+        else if (appData.view === "sync") title = "Sincronizar";
         else title = week ? `Semana ${week.num} · ${weekRange(week)}` : "My-Guion";
-        if (week && appData.view !== "semana") pct = weekProgress(week);
+        if (week && appData.view !== "semana" && appData.view !== "sync") pct = weekProgress(week);
     } else if (appData.view === "guion" && isNewScript) {
         title = "Nuevo guion";
     } else {
@@ -371,6 +372,9 @@ function updateBreadcrumbs() {
         setThird("");
     } else if (v === "guia") {
         setSecond("Guía de la semana", false);
+        setThird("");
+    } else if (v === "sync") {
+        setSecond("Sincronizar dispositivos", false);
         setThird("");
     } else if (v === "guion" && isNewScript) {
         setSecond("Nuevo guion", false);
@@ -952,7 +956,7 @@ function render() {
         headerEl.hidden = appData.view === "grabar";
     }
 
-    ["dashboard", "plan", "grabar", "guion", "semana", "guia"].forEach(v => {
+    ["dashboard", "plan", "grabar", "guion", "semana", "guia", "sync"].forEach(v => {
         const viewEl = $("v-" + v);
         const tabEl = $("t-" + (v === "dashboard" ? "dash" : v));
         if (viewEl) viewEl.hidden = appData.view !== v;
@@ -966,6 +970,7 @@ function render() {
 
     if (appData.view === "dashboard") renderHome();
     if (appData.view === "guia") renderGuide();
+    if (appData.view === "sync") renderSync();
     if (appData.view === "plan") renderPlan();
     if (appData.view === "grabar") renderRec();
     if (appData.view === "guion") {
@@ -1263,7 +1268,7 @@ document.addEventListener("click", e => {
         } else if (appData.view === "guion") {
             appData.view = isNewScript ? "dashboard" : "plan";
             isNewScript = false;
-        } else if (["plan", "semana", "guia"].includes(appData.view)) {
+        } else if (["plan", "semana", "guia", "sync"].includes(appData.view)) {
             appData.view = "dashboard";
         }
         saveAppData();
@@ -1349,6 +1354,11 @@ document.addEventListener("click", e => {
         $("file-import").click();
         return;
     }
+    if (e.target.closest("[data-go-sync]")) {
+        goView("sync");
+        return;
+    }
+    if (handleSyncButtons(e)) return;
     if (e.target.closest("[data-go-guide]")) {
         goView("guia");
         return;
@@ -1759,6 +1769,28 @@ document.addEventListener("click", e => {
             break;
         }
     }
+});
+
+/** Botones de la pantalla de sincronizacion. */
+function handleSyncButtons(e) {
+    if (e.target.closest("#btn-sync-now")) {
+        syncNow();
+        return true;
+    }
+    if (e.target.closest("#btn-sync-out")) {
+        syncSignOut();
+        return true;
+    }
+    return false;
+}
+
+// Formulario de acceso para sincronizar
+document.addEventListener("submit", e => {
+    if (e.target.getAttribute("id") !== "sync-form") return;
+    e.preventDefault();
+    const email = String(new FormData(e.target).get("email") || "").trim();
+    if (!email) return;
+    syncSignIn(email).then(ok => showToast(ok ? "Enlace enviado: revisa tu correo" : "No se pudo enviar el enlace"));
 });
 
 // Formulario del equipo (Inicio)

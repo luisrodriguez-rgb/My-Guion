@@ -1935,3 +1935,4 @@ if (appData.theme && appData.theme !== "auto") {
     document.documentElement.setAttribute("data-theme", appData.theme);
 }
 render();
+initSync();

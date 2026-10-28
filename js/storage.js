@@ -120,6 +120,7 @@ function saveAppData() {
     } catch (e) {
         console.warn("No se pudo guardar en localStorage:", e);
     }
+    if (typeof scheduleSync === "function") scheduleSync();
 }
 
 /**

@@ -1813,4 +1813,79 @@ body[data-view="dashboard"] .wrap {
         font-size: 16px !important;
     }
 
+    /* Casillas y botones de al menos 40px para tocarlos con el dedo */
+    .item {
+        padding: 10px;
+    }
+
+    .item input,
+    .social-channel-check-label input[type="checkbox"],
+    .day-check,
+    .chip-check {
+        width: 22px;
+        height: 22px;
+    }
+
+    .todo-check {
+        width: 26px;
+        height: 26px;
+    }
+
+    .piece-chip {
+        padding: 9px 8px;
+        gap: 8px;
+    }
+
+    .icon-btn,
+    .board-btn.menu-btn,
+    .sync-indicator {
+        width: 40px;
+        height: 40px;
+    }
+
+    .loose-row .icon-btn,
+    .team-actions .icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .nav-back-btn {
+        min-height: 36px;
+        padding: 6px 12px;
+    }
+
+    .btn.small,
+    .tracker-select,
+    .tracker-date-input,
+    .channel-url-input {
+        min-height: 40px;
+    }
+
+    .zoom-pill button {
+        min-width: 44px;
+        min-height: 40px;
+    }
+
+    .assign-chip {
+        min-height: 36px;
+    }
+
+    /* Zona tactil invisible alrededor de las casillas sueltas */
+    .hit {
+        padding: 9px;
+        margin: -9px;
+    }
+
+    .social-channel-check-label,
+    .loose-scripts summary {
+        min-height: 40px;
+    }
+}
+
+.hit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    cursor: pointer;
 }

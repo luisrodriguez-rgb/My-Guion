@@ -49,6 +49,37 @@ Solo hay que hacerlo una vez, y lo hace quien administra la app.
 La primera vez, lo que ya tenias en ese navegador se junta con lo de la nube.
 Si la misma semana estaba cargada en dos lados, se queda la de la nube.
 
+## Si dice "No se pudo enviar el enlace"
+
+La pantalla muestra el motivo. El mas comun es **"Email address not authorized"**:
+el envio de correos gratuito de Supabase solo manda enlaces a los correos que
+son parte del equipo de tu cuenta de Supabase. Hay dos salidas:
+
+**A. Rapido: agregar a cada persona al equipo de Supabase**
+
+1. En Supabase, arriba a la izquierda, entra a tu organizacion > **Team**.
+2. **Invite member** con el correo de la persona (rol `Read-only` basta).
+3. La persona acepta la invitacion que le llega por correo.
+4. Desde ese momento ya le llegan los enlaces de My-Guion.
+
+Ojo: con esto la persona tambien puede ver el panel de Supabase.
+
+**B. Mejor a largo plazo: un servidor de correo propio (SMTP)**
+
+Asi los enlaces llegan a cualquier correo del equipo sin invitarlo a Supabase,
+y sin el limite de pocos correos por hora.
+
+1. Crea una cuenta gratis en un servicio de correo como [Resend](https://resend.com)
+   y saca la clave SMTP (o usa Gmail con una "contrasena de aplicacion").
+2. En Supabase: **Authentication** > **Emails** > **SMTP Settings** > activa
+   **Enable Custom SMTP** y llena servidor, puerto, usuario y clave.
+3. Guarda y vuelve a pedir el enlace.
+
+Otros motivos: **"rate limit"** significa que se pidieron muchos enlaces
+seguidos (espera unos minutos); **"Signups not allowed"** significa que en
+**Authentication** > **Sign In / Providers** esta apagado "Allow new users to
+sign up".
+
 ## Agregar o quitar personas
 
 En **SQL Editor**:

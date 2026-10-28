@@ -34,6 +34,7 @@ Cuando creas guiones para videos de redes sociales (TikTok, Reels, YouTube Short
 * **Sesion de grabacion:** Cada bloque del "Plan de grabacion" encadena en el teleprompter las frases de varias piezas en el orden recomendado, solo las de las personas del bloque (gemelos o colaboradora) y separando las grabaciones de pantalla.
 * **Claqueta y tomas:** Cada frase muestra su nombre de archivo (por ejemplo `S1_JUE_G_F1`) y cuenta las tomas pedidas ("Toma 2 de 3"). `Espacio` registra una toma; al completar las tomas pasa a la siguiente frase.
 * **Guia de la semana:** Reglas de grabacion con casillas, guia de edicion y mensajes para el equipo listos para copiar.
+* **Sincronizar dispositivos:** Con Supabase (gratis) cada persona entra con su correo y la semana, las tomas, las casillas y el equipo se ven igual en el computador y en los celulares, en vivo. Sin configurar, todo se guarda solo en el navegador como antes. Pasos en [docs/sincronizacion.md](docs/sincronizacion.md).
 * **Actualizar sin perder avance:** Volver a pegar el kit de la misma semana actualiza las piezas y conserva tomas y casillas ya marcadas.
 
 ### 1. Planificacion y Fases del Rodaje
@@ -112,7 +113,9 @@ My-Guion/
 │   ├── parser.js           # Motor de analisis sintactico de guiones y tablas
 │   ├── kit.js              # Lector del kit de produccion semanal (dias, bloques, fechas, pendientes)
 │   ├── icons.js            # Iconos de linea en SVG, sin dependencias
+│   ├── config.js           # Direccion y clave publica de Supabase (vacio = solo este navegador)
 │   ├── storage.js          # Persistencia en localStorage, exportacion y backups
+│   ├── sync.js             # Sincronizacion entre dispositivos con Supabase
 │   ├── teleprompter.js     # Screen WakeLock, pantalla completa, zoom y respuesta haptica
 │   ├── team.js             # Equipo: personas, roles, notas y quien hace cada pieza
 │   ├── week.js             # Semanas, sesiones de grabacion y pantalla de Inicio

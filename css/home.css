@@ -1678,3 +1678,126 @@ body[data-view="dashboard"] .wrap {
         font-size: 1.6rem;
     }
 }
+
+/* ==========================================================================
+   Sincronizacion entre dispositivos
+   ========================================================================== */
+.sync-indicator {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.sync-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    flex: none;
+}
+
+.is-synced .sync-dot {
+    background: var(--ok);
+}
+
+.is-syncing .sync-dot,
+.is-loading .sync-dot,
+.is-link-sent .sync-dot {
+    background: var(--tape);
+}
+
+.is-error .sync-dot,
+.is-offline .sync-dot,
+.is-no-access .sync-dot {
+    background: var(--danger);
+}
+
+.sync-head {
+    margin-bottom: 16px;
+}
+
+.sync-head h2 {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1.05;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.sync-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 640px;
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+}
+
+.sync-form .row {
+    margin-top: 6px;
+}
+
+.sync-form input {
+    flex: 1;
+    min-width: 220px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+}
+
+.sync-note {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.92rem;
+}
+
+.sync-note.ok {
+    background: var(--ok-soft);
+}
+
+.sync-note.bad {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+.sync-facts {
+    display: grid;
+    gap: 8px;
+}
+
+.sync-facts div {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sync-facts dt {
+    color: var(--muted);
+    min-width: 170px;
+}
+
+.sync-facts dd {
+    font-weight: 600;
+}
